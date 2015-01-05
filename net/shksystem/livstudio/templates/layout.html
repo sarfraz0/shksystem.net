@@ -1,0 +1,22 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>{% block title %}{% endblock%}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='foundation/css/foundation.css') }}" />
+    <script src="{{ url_for('static', filename='foundation/js/vendor/modernizr.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{% block css %}{% endblock%}" />
+  </head>
+  <body>
+
+    {% block content %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='foundation/js/vendor/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='foundation/js/foundation.min.js') }}"></script>
+    <script>
+      $(document).foundation();
+    </script>
+  </body>
+</html>

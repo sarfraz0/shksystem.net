@@ -1,0 +1,96 @@
+{% extends 'menu.html' %}
+{% block title %}Home{% endblock %}
+{% block css %}{{ url_for('static', filename='css/index.css') }}{% endblock %}
+{% block content %}
+
+<div class="row">
+  <div class="large-12 columns">
+    <br />
+
+    <dl class="tabs" data-tab>
+      <dd class="active">
+	<a href="#panel1">Livraison
+	</a>
+      </dd>
+      <dd>
+	<a href="#panel2">Jira
+	</a>
+      </dd>
+    </dl>
+    <div class="tabs-content">
+      <div class="content active" id="panel1">
+	<ul class="side-nav">
+	  <li>
+	    <a href="#" data-reveal-id="deployJar">Deploy java binaries
+	    </a>
+	    <div id="deployJar" class="reveal-modal" data-reveal>
+
+	      <div class="row">
+		<div class="large-12 columns">
+		  <form action="{{ url_for('livraison') }}" method="post">
+
+		    <div class="row">
+		      <div class="large-12 columns">
+			<label for="inv">Target environement :</label>
+			<select name="inv" id="inv">
+			  <option value="ALL">ALL</option>
+			  <option value="DEV">DEV</option>
+			  <option value="INT">INT</option>
+			  <option value="LIV">LIV</option>
+			</select>
+		      </div>
+		      <div class="large-12 columns">
+			<label for="comp">Target project :</label>
+			<select name="comp" id="comp">
+			  <option value="ALL">ALL</option>
+			  <option value="Livraison">Livraison</option>
+			  <option value="utilitaires">utilitaires</option>
+			</select>
+		      </div>
+		    </div>
+
+		    <div class="row">
+		      <div class="large-3 large-offset-9 columns">
+			<input type="submit" value="Update Environment" class="button">
+		      </div>
+		    </div>
+
+		  </form>
+		</div>
+	      </div>
+
+	    </div>
+	  </li>
+	  <li>
+	    <a href="#" data-reveal-id="deployConf">Deploy java configuration
+	    </a>
+	    <div id="deployConf" class="reveal-modal" data-reveal>
+	    </div>
+	  </li>
+	</ul>
+      </div>
+      <div class="content" id="panel2">
+	<ul class="side-nav">
+	  <li>
+	    <a href="#" data-reveal-id="JiraOP">Start/Stop/Restart Jira
+	    </a>
+	    <div id="JiraOP" class="reveal-modal" data-reveal>
+	    </div>
+	  </li>
+	  <li>
+	    <a href="#" data-reveal-id="jiraConf">Deploy Jira configuration
+	    </a>
+	    <div id="jiraConf" class="reveal-modal" data-reveal>
+	    </div>
+	  </li>
+	</ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
+{% endblock %}
