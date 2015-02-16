@@ -11,5 +11,3 @@
 	+ removed inactive projects from flask
 	+ changed some imports to be consistent with python 3
 	+ remove fabric dependend ssh.py as paramiko is straight forward to use
-* 0.1.1.2
-	+ removed trailing garbage
