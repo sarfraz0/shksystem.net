@@ -1,0 +1,8 @@
+#!/bin/bash
+
+sudo rm -rf $INDUS_HOME/lib/net
+sudo cp -r net $INDUS_HOME/lib
+sudo chown -R root:indus $INDUS_HOME
+sudo chmod -R 660 $INDUS_HOME/lib/net
+
+#0

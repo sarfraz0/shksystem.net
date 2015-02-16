@@ -1,0 +1,33 @@
+{% extends 'menu.html' %}
+{% block title %}Registration validation{% endblock %}
+{% block css %}{{ url_for('static', filename='css/validate.css') }}{% endblock %}
+{% block content %}
+
+<div class="row">
+  <div class="large-4 columns">
+    <form action="{{ url_for('validate', mode='REGEN', pseudo_id=pseudo_id) }}" method="post">
+      <input type="submit" value="Send new token" class="button" />
+    </form>
+  </div>
+
+  <div class="large-8 columns">
+    <form action="{{ url_for('validate', mode='VALID', pseudo_id=pseudo_id) }}" method="post">
+
+      <div class="row">
+	<div class="large-8 columns">
+	  <label for="token_entry">Validation token :
+	  </label>
+	  <input type="text" name="token_entry" id="token_entry" required />
+	</div>
+      </div>
+      <div class="row">
+	<div class="large-4 columns">
+	  <input type="submit" value="Register me!" class="button" />
+	</div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

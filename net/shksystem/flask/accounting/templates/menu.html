@@ -1,0 +1,47 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>{% block title %}{% endblock%}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='foundation/css/foundation.css') }}" />
+    <script src="{{ url_for('static', filename='foundation/js/vendor/modernizr.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{% block css %}{% endblock%}" />
+  </head>
+  <body>
+
+    <nav class="top-bar" data-topbar role="navigation">
+      <section class="top-bar-section">
+	<!-- Right Nav Section -->
+	<ul class="right">
+	  {% if current_user.is_admin %}
+	  <li>
+	    <a href="{{ url_for('admin') }}">Admin
+	    </a>
+	  </li>
+	  {% endif %}
+	  <li class="active">
+	    <a href="{{ url_for('logout') }}">Logout
+	    </a>
+	  </li>
+	</ul>
+	<!-- Left Nav Section -->
+	<ul class="left">
+	  <li>
+	    <a href="/index">Accounting
+	    </a>
+	  </li>
+	</ul>
+      </section>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='foundation/js/vendor/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='foundation/js/foundation.min.js') }}"></script>
+    <script>
+      $(document).foundation();
+    </script>
+  </body>
+</html>

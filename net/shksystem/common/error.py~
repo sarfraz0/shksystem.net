@@ -26,6 +26,9 @@
 # Classes/Functions
 #==========================================================================
 
+class MissingParameter(Exception):
+    pass
+
 class FileNotFound(Exception):
     pass
 

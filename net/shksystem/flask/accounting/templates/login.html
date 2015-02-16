@@ -1,0 +1,101 @@
+{% extends 'layout.html' %}
+{% block title %}Login{% endblock %}
+{% block css %}{{ url_for('static', filename='css/login.css') }}{% endblock %}
+{% block content %}
+
+<nav class="top-bar" data-topbar>
+  <section class="top-bar-section">
+    <ul class="right">
+      <li>
+	<a href="#" data-reveal-id="register" class="button tiny secondary">Register
+	</a>
+      </li>
+      <li>
+	<a href="#" data-options="align:left" data-dropdown="signin" class="button tiny success">Log in
+	</a>
+      </li>
+    </ul>
+    <ul class="left">
+      <li>
+	<a href="{{ url_for('index') }}">Accounting
+	</a>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+<div id="register" class="reveal-modal" data-reveal>
+      <form action="{{ url_for('register') }}" method="post">
+
+	<div class="row">
+	  <div class="large-12 columns">
+	    <label>Pseudonym
+	    </label>
+	    <input type="text" name="pseudo" placeholder="Jpont" required>
+	  </div>
+	</div>
+
+	<div class="row">
+	  <div class="large-6 columns">
+	    <label>Name
+	    </label>
+	    <input type="text" name="name" placeholder="Jean">
+	  </div>
+	  <div class="large-6 columns">
+	    <label>Lastname
+	    </label>
+	    <input type="text" name="lastname" placeholder="Dupont">
+	  </div>
+	</div>
+
+	<div class="row">
+	  <div class="large-12 columns">
+	    <label>Email
+	    </label>
+	    <input type="email" name="email" placeholder="jean.dupont@popular-provider.com">
+	  </div>
+	</div>
+
+	<div class="row">
+	  <div class="large-6 columns">
+	    <label>Password
+	    </label>
+	    <input type="password" name="passw1" placeholder="XXXXX" required>
+	  </div>
+	  <div class="large-6 columns">
+	    <label>Confirm password
+	    </label>
+	    <input type="password" name="passw2" placeholder="XXXXX" required>
+	  </div>
+	</div>
+
+	<div class="row">
+	  <div class="large-12 columns">
+	    <input type="submit" value="Register" class="button">
+	  </div>
+	</div>
+
+      </form>
+</div>
+
+<div id="signin" class="f-dropdown small content" data-dropdown-content="true">
+  <h5>Log In:
+  </h5>
+  <form id="top-nav-login" action="{{ url_for('login') }}" method="post">
+    <div class="row">
+      <label>Pseudonym
+      </label>
+      <input type="text" name="pseudo" placeholder="pseudo" required>
+    </div>
+    <div class="row">
+      <label>Password
+      </label>
+      <input type="password" name="password" placeholder="password" required>
+    </div>
+    <div class="row">
+      <input type="submit" value="Log in" class="button round tiny">
+    </div>
+  </form>
+</div>
+
+{% endblock %}
