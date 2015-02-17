@@ -17,3 +17,5 @@
 	+ added .gitignore for .pyc files
 * 0.1.1.4
 	+ corrected invalid error.py import in dllrange
+* 0.1.1.5
+	+ added deploy_liv scripts in vrac
