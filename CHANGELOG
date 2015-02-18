@@ -19,3 +19,5 @@
 	+ corrected invalid error.py import in dllrange
 * 0.1.1.5
 	+ added deploy_liv scripts in vrac
+* 0.1.2.1
+	+ deploy_liv is now working
