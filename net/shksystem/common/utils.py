@@ -25,6 +25,8 @@ import random
 import datetime
 import logging, logging.handlers
 from subprocess import call
+import shutil
+import tempfile
 from .error     import *
 
 #==========================================================================
@@ -100,6 +102,27 @@ def gen_random_token(n):
 def get_random_elem(lst):
     ret = random.choice(lst)
     return ret
+
+## This function replaces the string value in the file for the new one
+# replace_in_file :: FilePath
+#                 -> String
+#                 -> String
+#                 -> IO ()
+def replace_in_file(filename, pattern, subst):
+    # Create temp file
+    fh, abs_path = tempfile.mkstemp()
+    new_file     = open(abs_path,'w')
+    old_file     = open(filename)
+    for line in old_file:
+        new_file.write(line.replace(pattern, subst))
+    # Close temp file
+    new_file.close()
+    os.close(fh)
+    old_file.close()
+    # Remove original file
+    os.remove(filename)
+    # Move new file
+    shutil.move(abs_path, filename)
 
 #==========================================================================
 #0

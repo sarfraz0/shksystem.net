@@ -22,11 +22,11 @@ import os
 import sys
 import keyring
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase      import MIMEBase
-from email.MIMEText      import MIMEText
-from email.Utils         import COMMASPACE, formatdate
-from email               import Encoders
+from email.mime.base      import MIMEBase
+from email.mime.text      import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils          import COMMASPACE, formatdate
+from email                import encoders
 
 #==========================================================================
 # Environment/Static variables
@@ -51,28 +51,32 @@ class SendMail:
         assert type(recs) == list
 
         msg = MIMEMultipart()
-        msg["From"]    = frm
-        msg["Subject"] = subj
-        msg["To"]      = COMMASPACE.join(recs)
-        msg["Date"]    = formatdate(localtime=True)
+        msg['From']    = frm
+        msg['Subject'] = subj
+        msg['To']      = COMMASPACE.join(recs)
+        msg['Date']    = formatdate(localtime=True)
 
         if htmlbody:
-            msg.attach(MIMEText(bod, "html"))
+            msg.attach(MIMEText(bod, 'html'))
         else:
             msg.attach(MIMEText(bod))
 
         if atts:
             for att in atts:
-                part = MIMEBase("application", "octet-stream")
+                part = MIMEBase('application', 'octet-stream')
                 part.set_payload( open(att,"rb").read() )
-                Encoders.encode_base64(part)
-                part.add_header("Content-Disposition", "attachment; filename=\"{0}\""
-                                .format(os.path.basename(att)))
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', 'attachment; filename=\"{0}\"'.format(os.path.basename(att)))
                 msg.attach(part)
 
-        server = smtplib.SMTP("{0}:{1}"
-                              .format(self._server, self._port))
-        server.starttls()
+        if self._port == 465:
+            server = smtplib.SMTP_SSL('{0}:{1}'.format(self._server, self._port))
+        elif self._port == 587:
+            server = smtplib.SMTP('{0}:{1}'.format(self._server, self._port))
+            server.starttls()
+        else:
+            server = smtplib.SMTP('{0}:{1}'.format(self._server, self._port))
+
         server.login(self._username, self._password)
         server.sendmail(frm, recs, msg.as_string())
         server.quit()

@@ -36,13 +36,6 @@ logger    = logging.getLogger(__name__)
 base_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 Base      = declarative_base()
 
-conf_dir  = os.path.abspath('../etc/{0}'.format(base_name,))
-rules_fic = os.path.join(conf_dir, 'rules.csv')
-compu_fic = os.path.join(conf_dir, 'computers.csv')
-compo_fic = os.path.join(conf_dir, 'components.csv')
-db_fic    = os.path.join(conf_dir, '{0}.db'.format(base_name,))
-engine    = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
-
 #==========================================================================
 # Classes/Functions
 #==========================================================================
@@ -101,6 +94,14 @@ class Rule(Base):
 ## Processes
 
 def run_deployment():
+
+    conf_dir  = os.path.abspath('../etc/{0}'.format(base_name,))
+    rules_fic = os.path.join(conf_dir, 'rules.csv')
+    compu_fic = os.path.join(conf_dir, 'computers.csv')
+    compo_fic = os.path.join(conf_dir, 'components.csv')
+    db_fic    = os.path.join(conf_dir, '{0}.db'.format(base_name,))
+    engine    = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
+
     logger.info('#### Running all rules. ####')
 
     logger.info('--> Checking data.')
@@ -108,6 +109,9 @@ def run_deployment():
         logger.info('----> Database file does not exist. Creating it.')
         if not (os.path.isfile(rules_fic) and os.path.isfile(compu_fic) and os.path.isfile(compo_fic)):
             logger.error('----> Required data files do not exists. Please create them and run again.')
+            logger.error(rules_fic)
+            logger.error(compu_fic)
+            logger.error(compo_fic)
             raise FileNotFound
         Base.metadata.create_all(engine)
         logger.info('----> Database file created.')
@@ -154,7 +158,6 @@ def run_deployment():
         for compu in compo.computers:
             try:
                 tr = paramiko.Transport((compu.hostname, compu.port))
-                tr.start_client()
                 tr.connect(username=compu.username, password=compu.password)
                 sf = paramiko.SFTPClient.from_transport(tr)
                 logger.info('------> Connected to {0}@{1}:{2}.'.format(compu.username, compu.hostname, compu.port))

@@ -43,6 +43,8 @@ class User(db.Model):
     pseudo        = db.Column(db.String, nullable=False, unique=True)
     passwhash     = db.Column(db.String, nullable=False)
     is_admin      = db.Column(db.Boolean, nullable=False)
+    persona       = db.relationship('Persona', uselist=False, backref='users')
+    temp          = db.relationship('Temp', uselist=False, backref='users')
 
     def __init__(self, pseudo, passw, is_admin):
         self.pseudo     = pseudo
@@ -61,12 +63,18 @@ class User(db.Model):
     def get_id(self):
         return unicode(self.nudoss)
 
+    def init_persona(self, lol):
+        pass
+
+    def init_temp(self, lol):
+        pass
+
 # -- APP MODELS
 # -------------------------------------------------------------------------
 class Persona(db.Model):
     __tablename__  = 'personas'
-    # nudoss here is equal to the same field for User
     nudoss         = db.Column(db.Integer, primary_key=True)
+    user_attached  = db.Column(db.Integer, db.ForeignKey())
     name           = db.Column(db.String)
     lastname       = db.Column(db.String)
     email          = db.Column(db.String, nullable=False)
