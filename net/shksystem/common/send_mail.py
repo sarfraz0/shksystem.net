@@ -22,6 +22,7 @@ import os
 import sys
 import keyring
 import smtplib
+import logging
 from email.mime.base      import MIMEBase
 from email.mime.text      import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -31,7 +32,9 @@ from email                import encoders
 #==========================================================================
 # Environment/Static variables
 #==========================================================================
-# NONE
+
+logger = logging.getLogger(__name__)
+
 #==========================================================================
 # Classes/Functions
 #==========================================================================

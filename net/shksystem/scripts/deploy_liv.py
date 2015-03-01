@@ -21,12 +21,12 @@
 import os
 import sys
 import csv
-import logging
+import keyring
 from sqlalchemy                 import create_engine, Column, Integer, String, Boolean, UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm             import sessionmaker, relationship, backref
 import paramiko
-from ..common.error             import FileNotFound
+from net.shksystem.common.error import FileNotFound
 
 #==========================================================================
 # Environment/Static variables

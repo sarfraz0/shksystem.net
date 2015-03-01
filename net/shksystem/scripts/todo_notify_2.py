@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 #@(#)----------------------------------------------------------------------
-#@(#) OBJET            : Ordre d'arrivée et de sortie
+#@(#) OBJET            : Automatic notification of change in todo
 #@(#)----------------------------------------------------------------------
 #@(#) AUTEUR           : Sarfraz Kapasi
-#@(#) DATE DE CREATION : 25.02.2015
+#@(#) DATE DE CREATION : 01.03.2015
 #@(#) LICENSE          : GPL-3
 #@(#)----------------------------------------------------------------------
 
@@ -20,6 +20,7 @@
 
 import os
 import sys
+from subprocess                     import call
 import csv
 import logging
 import keyring
@@ -27,9 +28,8 @@ from sqlalchemy                     import create_engine, Column, Integer, Strin
 from sqlalchemy.ext.declarative     import declarative_base
 from sqlalchemy.orm                 import sessionmaker
 from net.shksystem.common.error     import FileNotFound
-from net.shksystem.common.utils     import get_current_timestamp
+from net.shksystem.common.utils     import get_current_timestamp, replace_in_file
 from net.shksystem.common.send_mail import SendMail
-from net.shksystem.common.logic     import Switch
 
 #==========================================================================
 # Environment/Static variables
@@ -68,13 +68,22 @@ class Server(Base):
         keyring.set_password(hostname, username, password)
         self.sender   = sender
 
+class Config(Base):
+    __tablename__ = 'configs'
+    nudoss        = Column(Integer, primary_key=True)
+    todo_path     = Column(String, nullable=False)
+
+    def __init__(self, todo_path):
+        self.todo_path  = todo_path
+
 ## Processes
 
-def run_recipients(imperium):
+def run_recipients():
 
     conf_dir  = os.path.abspath('../etc/{0}'.format(base_name,))
     dest_fic  = os.path.join(conf_dir, 'recipients.csv')
     serv_fic  = os.path.join(conf_dir, 'servers.csv')
+    conf_fic  = os.path.join(conf_dir, 'configs.csv')
     db_fic    = os.path.join(conf_dir, '{0}.db'.format(base_name,))
     engine    = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
 
@@ -83,20 +92,28 @@ def run_recipients(imperium):
     logger.info('Checking data.')
     if not os.path.isfile(db_fic):
         logger.info('Database file does not exist. Creating it.')
-        if not (all(map(os.path.isfile, [dest_fic, serv_fic]))):
+        if not (os.path.isfile(dest_fic) and os.path.isfile(serv_fic) and os.path.isfile(conf_fic)):
             logger.error('Required data files do not exists. Please create them and run again.')
             raise FileNotFound
         Base.metadata.create_all(engine)
         logger.info('Creating session to feed database.')
         Session = sessionmaker(bind=engine)
         s       = Session()
-        logger.info('Reading configuraiton files and adding information to sqlite.')
-        with open(dest_fic) as f1:
-            for row in csv.reader(f1):
+        logger.info('Reading and adding recipients info.')
+        with open(dest_fic, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
                 s.add(Recipient(row[0]))
-        with open(serv_fic) as f2:
-            for row in csv.reader(f2):
+        logger.info('Reading and adding servers info.')
+        with open(serv_fic, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
                 s.add(Server(row[0], int(row[1]), row[2], row[3], row[4]))
+        logger.info('Reading and adding configuration info.')
+        with open(conf_fic, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                s.add(Config(os.path.expanduser(row[0])))
         s.commit()
     logger.info('Database is ready for business')
 
@@ -104,20 +121,11 @@ def run_recipients(imperium):
     Session1 = sessionmaker(bind=engine)
     s1       = Session1()
     serv     = s1.query(Server).first()
+    conf     = s1.query(Config).first()
 
     logger.info('Sending emails')
-    sm = SendMail(serv.hostname, serv.port, serv.username)
-    for case in Switch(imperium):
-        if case('arrivee'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Ready for business.', [x.mail for x in s1.query(Recipient).all()], [])
-        if case('depart'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Bonne soirée.', [x.mail for x in s1.query(Recipient).all()], [])
-        if case('depart_pause'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Go pause, a toute.', [x.mail for x in s1.query(Recipient).all()], [])
-        if case('fin_pause'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'C\'est bon redispo.', [x.mail for x in s1.query(Recipient).all()], [])
-        else:
-            logger.info('Nothing to do.')
+    sm      = SendMail(serv.hostname, serv.port, serv.username)
+    sm.send_mail(serv.sender, '[TODO] {0}'.format(get_current_timestamp(),), 'TODO has been updated', [x.mail for x in s1.query(Recipient).all()], [conf.todo_path], False)
 
     logger.info('#### Done.')
 
