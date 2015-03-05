@@ -103,26 +103,37 @@ def get_random_elem(lst):
     ret = random.choice(lst)
     return ret
 
-## This function replaces the string value in the file for the new one
-# replace_in_file :: FilePath
-#                 -> String
-#                 -> String
-#                 -> IO ()
-def replace_in_file(filename, pattern, subst):
-    # Create temp file
-    fh, abs_path = tempfile.mkstemp()
-    new_file     = open(abs_path,'w')
-    old_file     = open(filename)
-    for line in old_file:
-        new_file.write(line.replace(pattern, subst))
-    # Close temp file
-    new_file.close()
-    os.close(fh)
-    old_file.close()
-    # Remove original file
-    os.remove(filename)
-    # Move new file
-    shutil.move(abs_path, filename)
+def replace_in_file(fic, patt, subst):
+    """ This function replaces the string value in the file for the new one
+        replace_in_file :: FilePath
+                        -> String
+                        -> String
+                        -> IO ()
+    """
+    try:
+        fh, pabs = tempfile.mkstemp()
+        nfic     = open(pabs,'w')
+        ofic     = open(fic)
+        for line in ofic:
+            nfic.write(line.replace(patt, subst))
+        os.remove(fic)
+        shutil.move(pabs, fic)
+    except:
+        logger.error('Replace of patern {0} by {1} failed on file {2}.'
+                     .format(patt, subst, fic))
+    finally:
+        nfic.close()
+        ofic.close()
+        os.close(fh)
+
+def remove_existing_fics(list_of_fics):
+    """ This function unlink a list of file given that they exist on filesystem
+        remove_existing_fics :: [FilePath] -- ^ List of files to be removed
+                             -> IO ()
+    """
+    for p in list_of_fics:
+        if os.path.isfile:
+            os.unlink(p)
 
 #==========================================================================
 #0

@@ -92,11 +92,11 @@ def run_recipients(imperium):
         s       = Session()
         logger.info('Reading configuraiton files and adding information to sqlite.')
         with open(dest_fic) as f1:
-            for row in csv.reader(f1):
-                s.add(Recipient(row[0]))
+            for w1 in csv.reader(f1):
+                s.add(Recipient(w1[0]))
         with open(serv_fic) as f2:
-            for row in csv.reader(f2):
-                s.add(Server(row[0], int(row[1]), row[2], row[3], row[4]))
+            for w2 in csv.reader(f2):
+                s.add(Server(w2[0], int(w2[1]), w2[2], w2[3], w2[4]))
         s.commit()
     logger.info('Database is ready for business')
 
@@ -106,19 +106,33 @@ def run_recipients(imperium):
     serv     = s1.query(Server).first()
 
     logger.info('Sending emails')
-    sm = SendMail(serv.hostname, serv.port, serv.username)
+    sm      = SendMail(serv.hostname, serv.port, serv.username)
+    recs    = [x.mail for x in s1.query(Recipient).all()]
+    subject = '[DISPO] {0}'.format(get_current_timestamp(),)
+    sender  = serv.sender
+    send    = False
     for case in Switch(imperium):
         if case('arrivee'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Ready for business.', [x.mail for x in s1.query(Recipient).all()], [])
+            msg  = 'Ready for business.'
+            send = True
+            break
         if case('depart'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Bonne soirée.', [x.mail for x in s1.query(Recipient).all()], [])
+            msg  = 'Bonne soirée'
+            send = True
+            break
         if case('depart_pause'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'Go pause, a toute.', [x.mail for x in s1.query(Recipient).all()], [])
+            msg  = 'Go pause, a toute.'
+            send = True
+            break
         if case('fin_pause'):
-            sm.send_mail(serv.sender, '[DISPO] {0}'.format(get_current_timestamp(),), 'C\'est bon redispo.', [x.mail for x in s1.query(Recipient).all()], [])
-        else:
-            logger.info('Nothing to do.')
-
+            msg  = 'Re.'
+            send = True
+            break
+    if send:
+        for rec in recs:
+            sm.send_mail(sender, subject, msg, [rec], [])
+    else:
+        logger.info('Nothing to be done.')
     logger.info('#### Done.')
 
 #==========================================================================

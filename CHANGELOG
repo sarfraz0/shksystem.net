@@ -28,3 +28,9 @@
 	+ ariv_notify is now working
 	+ used todo_notify to make todo_notify_2 (which don't use emacs but an attachment)
 	+ changed lot of relative import to use absolute imports
+* 0.1.3.3
+	+ added remove_existing_fics to common lib
+	+ changed accounting models a little bit
+	+ fixed ariv_notiv script
+	+ begin to modify todo_notify to be able to handle multiple todo formats
+	+ removed todo_notify_2

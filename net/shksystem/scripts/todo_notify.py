@@ -71,12 +71,16 @@ class Server(Base):
 class Config(Base):
     __tablename__ = 'configs'
     nudoss        = Column(Integer, primary_key=True)
-    emacs_path    = Column(String, nullable=False)
+    emacs_path    = Column(String)
+    pandoc_path   = Column(String)
     todo_path     = Column(String, nullable=False)
 
-    def __init__(self, emacs_path, todo_path):
-        self.emacs_path = emacs_path
-        self.todo_path  = todo_path
+    def __init__(self, emacs_path, pandoc_path, todo_path):
+        if os.path.isfile(emacs_path):
+            self.emacs_path = emacs_path
+        if os.path.isfile(pandoc_path):
+            self.pandoc_path = pandoc_path
+        self.todo_path   = todo_path
 
 ## Processes
 
@@ -115,7 +119,7 @@ def run_recipients():
         with open(conf_fic, 'r') as f:
             reader = csv.reader(f)
             for row in reader:
-                s.add(Config(row[0], os.path.expanduser(row[1])))
+                s.add(Config(row[0], row[1], os.path.expanduser(row[2])))
         s.commit()
     logger.info('Database is ready for business')
 
@@ -126,15 +130,21 @@ def run_recipients():
     conf     = s1.query(Config).first()
 
     logger.info('Conversion from org to html')
-    call([conf.emacs_path, conf.todo_path, '--batch', '-f', 'org-export-as-html', '--kill'])
+    if conf.emacs_path is not None:
+        call([conf.emacs_path, conf.todo_path, '--batch', '-f', 'org-export-as-html', '--kill'])
+    elif conf.pandoc_path is not None:
+        call([conf.pandoc_path, conf.todo_path])
+    else:
+        logger.error('No tool found to convert org file')
     logger.info('Sending emails')
     sm      = SendMail(serv.hostname, serv.port, serv.username)
     htm_fic = conf.todo_path.replace('.org', '.html')
-    #replace_in_file(htm_fic, 'iso-8859-1', 'utf8')
-    sm.send_mail(serv.sender, '[TODO] {0}'.format(get_current_timestamp(),), open(htm_fic).read(), [x.mail for x in s1.query(Recipient).all()], [], True)
+    replace_in_file(htm_fic, 'iso-8859-1', 'utf8')
+    with open(htm_fic) as f1:
+        for rec in s1.query(Recipient).all():
+            sm.send_mail(serv.sender, '[TODO] {0}'.format(get_current_timestamp(),), f1.read(), [rec.mail], [], True)
 
-    #os.unlink(htm_fic)
-    #os.unlink(htm_fic + '~')
+    remove_existing_fics([htm_fic, htm_fic + '~'])
 
     logger.info('#### Done.')
 

@@ -45,6 +45,8 @@ class User(db.Model):
     is_admin      = db.Column(db.Boolean, nullable=False)
     persona       = db.relationship('Persona', uselist=False, backref='users')
     temp          = db.relationship('Temp', uselist=False, backref='users')
+    up_debts      = db.relationship('Debt', backref='debts')
+    down_debts    = db.relationship('Debt', backref='debts')
 
     def __init__(self, pseudo, passw, is_admin):
         self.pseudo     = pseudo
@@ -63,18 +65,12 @@ class User(db.Model):
     def get_id(self):
         return unicode(self.nudoss)
 
-    def init_persona(self, lol):
-        pass
-
-    def init_temp(self, lol):
-        pass
-
 # -- APP MODELS
 # -------------------------------------------------------------------------
 class Persona(db.Model):
     __tablename__  = 'personas'
     nudoss         = db.Column(db.Integer, primary_key=True)
-    user_attached  = db.Column(db.Integer, db.ForeignKey())
+    user_attached  = db.Column(db.Integer, db.ForeignKey('users.nudoss'))
     name           = db.Column(db.String)
     lastname       = db.Column(db.String)
     email          = db.Column(db.String, nullable=False)
@@ -84,7 +80,7 @@ class Persona(db.Model):
     num_connected  = db.Column(db.Integer, default=1)
 
     def __init__(self, user_nudoss, user_mail):
-        self.nudoss         = user_nudoss
+        self.user_attached  = user_nudoss
         self.email          = user_mail
         self.last_connected = get_current_timestamp()
 
@@ -110,12 +106,12 @@ class Persona(db.Model):
 
 class Temp(db.Model):
     __tablename__    = 'temp'
-    # nudoss here is equal to the same field for User
     nudoss           = db.Column(db.Integer, primary_key=True)
+    user_attached    = db.Column(db.Integer, db.ForeignKey('users.nudoss'))
     validation_token = db.Column(db.String)
 
     def __init__(self, user_nudoss):
-        self.nudoss = user_nudoss
+        self.user_attached = user_nudoss
 
 class MailSpool(db.Model):
     __tablename__ = 'mail_spool'
@@ -136,9 +132,8 @@ class Debt(db.Model):
     nudoss        = db.Column(db.Integer, primary_key=True)
     value         = db.Column(db.Float, nullable=False)
     paid          = db.Column(db.Float, nullable=False)
-    # debtor and creditor equal nudoss of an User
-    debtor        = db.Column(db.Integer, nullable=False)
-    creditor      = db.Column(db.Integer, nullable=False)
+    debtor        = db.Column(db.Integer, db.ForeignKey('users.nudoss'))
+    creditor      = db.Column(db.Integer, db.ForeignKey('users.nudoss'))
 
     def __init__(self, value, debtor, creditor, paid):
         self.value    = value
