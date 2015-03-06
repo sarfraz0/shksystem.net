@@ -34,3 +34,5 @@
 	+ fixed ariv_notiv script
 	+ begin to modify todo_notify to be able to handle multiple todo formats
 	+ removed todo_notify_2
+* 0.1.3.4
+	+ fixed dllrange behaviour to be more consistent with indus
