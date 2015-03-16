@@ -36,3 +36,6 @@
 	+ removed todo_notify_2
 * 0.1.3.4
 	+ fixed dllrange behaviour to be more consistent with indus
+* 0.1.3.5
+	+ added rssget script draft
+	+ reworked a lot of accounting to make the register function work (still not working)

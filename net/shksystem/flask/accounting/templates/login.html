@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'base.html' %}
 {% block title %}Login{% endblock %}
 {% block css %}{{ url_for('static', filename='css/login.css') }}{% endblock %}
 {% block content %}
@@ -52,7 +52,7 @@
 	  <div class="large-12 columns">
 	    <label>Email
 	    </label>
-	    <input type="email" name="email" placeholder="jean.dupont@popular-provider.com">
+	    <input type="email" name="email" placeholder="jean.dupont@popular-provider.com" required>
 	  </div>
 	</div>
 

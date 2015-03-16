@@ -74,7 +74,7 @@ class Persona(db.Model):
     name           = db.Column(db.String)
     lastname       = db.Column(db.String)
     email          = db.Column(db.String, nullable=False)
-    validper       = db.Column(db.Boolean, default=False)
+    valid          = db.Column(db.Boolean, default=False)
     birthday       = db.Column(db.String)
     last_connected = db.Column(db.String, nullable=False)
     num_connected  = db.Column(db.Integer, default=1)
@@ -84,13 +84,13 @@ class Persona(db.Model):
         self.email          = user_mail
         self.last_connected = get_current_timestamp()
 
-    def set_name(self, post_dict):
+    def set_optionnals(self, post_dict):
         if 'name' in post_dict:
-            self.name = post_dict['name']
-
-    def set_lastname(self, post_dict):
+            self.name     = post_dict['name']
         if 'lastname' in post_dict:
             self.lastname = post_dict['lastname']
+        if 'birthday' in post_dict:
+            self.birthday = post_dict['birthday']
 
     def update_connection_infos(self):
         self.last_connected = get_current_timestamp()

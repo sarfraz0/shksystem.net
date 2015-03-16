@@ -22,6 +22,7 @@ import os
 import sys
 import csv
 import keyring
+import logging
 from sqlalchemy                 import create_engine, Column, Integer, String, Boolean, UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm             import sessionmaker, relationship, backref

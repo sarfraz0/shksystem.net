@@ -18,16 +18,20 @@
 # Imports
 #==========================================================================
 
+# standard
 import os
 import sys
 import binascii
 import random
 import datetime
 import logging, logging.handlers
-from subprocess import call
+from subprocess                 import call
 import shutil
 import tempfile
-from .error     import *
+# installed
+import feedparser
+# custom
+from net.shksystem.common.error import *
 
 #==========================================================================
 # Environment/Static variables
@@ -134,6 +138,24 @@ def remove_existing_fics(list_of_fics):
     for p in list_of_fics:
         if os.path.isfile:
             os.unlink(p)
+
+
+def get_latest_feeds(rss_url, num_of_days):
+    """ This function query a list of new entries from an RSS feed
+        get_latest_feeds :: String
+                         -> Integer
+                         -> [Map String String]
+    """
+    feeds = feedparser.parse(rss_url)
+
+    entries = []
+    for feed in feeds:
+        entries.extend( feed[ "items" ] )
+
+    decorated = [(entry["date_parsed"], entry) for entry in entries]
+    decorated.sort()
+    decorated.reverse()
+    sorted = [entry for (date,entry) in decorated]
 
 #==========================================================================
 #0
