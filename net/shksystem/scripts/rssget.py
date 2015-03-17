@@ -23,6 +23,7 @@ import os
 import sys
 import csv
 import logging
+import re
 # installed
 import keyring
 import configparser
@@ -51,52 +52,73 @@ Base      = declarative_base()
 
 # -- Models
 # -------------------------------------------------------------------------
-class Recipient(Base):
-    __tablename__ = 'recipients'
+
+class Rule(Base):
+    __tablename__ = 'rules'
     nudoss        = Column(Integer, primary_key=True)
-    mail          = Column(String, nullable=False)
+    is_active     = Column(Boolean, default=False)
+    name          = Column(String, nullable=False)
+    dest          = Column(String, nullable=False)
+    regex         = Column(String, nullable=False)
+    feed          = Column(Integer, ForeignKey('feeds.nudoss'))
+    dlleds        = relationship('DLLed', backref='dlleds')
 
-    def __init__(self, mail):
-        self.mail = mail
+    def __init__(self, name, dest, regex, feed_id):
+        self.name  = name
+        self.dest  = dest
+        self.regex = regex
+        self.feed  = feed_id
 
-class Server(Base):
-    __tablename__ = 'servers'
-    nudoss        = Column(Integer, primary_key=True)
-    hostname      = Column(String, nullable=False)
-    port          = Column(Integer, nullable=False)
-    username      = Column(String, nullable=False)
-    sender        = Column(String, nullable=False)
+class Feed(Base):
+    __tablename__  = 'feeds'
+    nudoss         = Column(Integer, primary_key=True)
+    feed_url       = Column(String, nullable=True, unique=True)
+    rules          = relationship('Rule', backref='rules')
+    last_checked   = Column(String, nullable=True)
 
-    def __init__(self, hostname, port, username, password, sender):
-        self.hostname = hostname
-        self.port     = port
-        self.username = username
-        keyring.set_password(hostname, username, password)
-        self.sender   = sender
+    def __init__(self, feed_url):
+        self.feed_url     = feed_url
+        self.last_checked = get_current_timestamp()
+
+class DLLed(Base):
+    __tablename__  = 'dlleds'
+    nudoss         = Column(Integer, primary_key=True)
+    filename       = Column(String, nullable=False)
+    rule           = Column(Integer, ForeignKey('rules.nudoss'))
+
+    def __init__(self, filename, rule_id):
+        self.filename = filename
+        self.rule     = rule_id
 
 # -- PROCESSES
 # -------------------------------------------------------------------------
-def run_recipients(imperium):
+def run_feeds():
+    logger.debug('100102 - BEGIN')
 
     conf_dir  = os.path.abspath('../etc/{0}'.format(base_name,))
-    dest_fic  = os.path.join(conf_dir, 'recipients.csv')
-    serv_fic  = os.path.join(conf_dir, 'servers.csv')
+    feed_fic  = os.path.join(conf_dir, 'feeds.csv')
+    rule_fic  = os.path.join(conf_dir, 'rules.csv')
     db_fic    = os.path.join(conf_dir, '{0}.db'.format(base_name,))
+    logger.debug('100102 - 1 - Setting up configuration files =')
+    logger.debug('Configuration directory : ' + conf_dir)
+    logger.debug('Feed list csv           : ' + feed_fic)
+    logger.debug('Rule list csv           : ' + db_fic)
+    logger.debug('SQLite database path    : ' + db_fic)
     engine    = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
 
-    logger.info('#### Sending notification to all. ####')
+    logger.info('#### Processing all feeds. ####')
 
     logger.info('Checking data.')
     if not os.path.isfile(db_fic):
         logger.info('Database file does not exist. Creating it.')
-        if not (all(map(os.path.isfile, [dest_fic, serv_fic]))):
-            logger.error('Required data files do not exists. Please create them and run again.')
+        if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
+            logger.error('Required data files do not exist. Please create them and run again.')
             raise FileNotFound
         Base.metadata.create_all(engine)
         logger.info('Creating session to feed database.')
         Session = sessionmaker(bind=engine)
         s       = Session()
-        logger.info('Reading configuraiton files and adding information to sqlite.')
+        logger.info('Reading configuration files and inserting into database.')
         with open(dest_fic) as f1:
             for w1 in csv.reader(f1):
                 s.add(Recipient(w1[0]))
@@ -104,6 +126,33 @@ def run_recipients(imperium):
             for w2 in csv.reader(f2):
                 s.add(Server(w2[0], int(w2[1]), w2[2], w2[3], w2[4]))
         s.commit()
+    else:
+        if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
+            logger.info('Required data files do not exist. Database does not need updates.')
+        else:
+            Session = sessionmaker(bind=engine)
+            s       = Session()
+            logger.info('Reading configuration files and updating database if needed.')
+            with open(feed_fic) as f1:
+                data      = list(csv.reader(f1))
+                row_count = len(data)
+                db_count  = s.query(Feed.nudoss).count()
+                logger.debug('1001102 - 2 - Feeds relative informations =')
+                logger.debug('Number of rows in csv file : ' + row_count)
+                logger.debug('Number of queryed feeds    : ' + db_count)
+                if  row_count == db_count:
+                    logger.info('Nothing to update for feeds')
+                else:
+                    for row in data:
+                        if
+            with open(dest_fic) as f1:
+                for w1 in csv.reader(f1):
+                    s.add(Recipient(w1[0]))
+            with open(serv_fic) as f2:
+                for w2 in csv.reader(f2):
+                    s.add(Server(w2[0], int(w2[1]), w2[2], w2[3], w2[4]))
+            s.commit()
+
     logger.info('Database is ready for business')
 
     logger.info('Running recipients.')
@@ -139,7 +188,7 @@ def run_recipients(imperium):
             sm.send_mail(sender, subject, msg, [rec], [])
     else:
         logger.info('Nothing to be done.')
-    logger.info('#### Done.')
+    logger.debug('100102 - END')
 
 #==========================================================================
 #0
