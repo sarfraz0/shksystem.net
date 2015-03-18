@@ -28,10 +28,10 @@ import re
 import keyring
 import configparser
 import feedparser
-import requests
-from sqlalchemy                     import create_engine, Column, Integer, String
+#import requests
+from sqlalchemy                     import create_engine, Column, Integer, String, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.ext.declarative     import declarative_base
-from sqlalchemy.orm                 import sessionmaker
+from sqlalchemy.orm                 import sessionmaker, relationship
 # custom
 from net.shksystem.common.error     import FileNotFound
 from net.shksystem.common.utils     import get_current_timestamp
@@ -54,14 +54,15 @@ Base      = declarative_base()
 # -------------------------------------------------------------------------
 
 class Rule(Base):
-    __tablename__ = 'rules'
-    nudoss        = Column(Integer, primary_key=True)
-    is_active     = Column(Boolean, default=False)
-    name          = Column(String, nullable=False)
-    dest          = Column(String, nullable=False)
-    regex         = Column(String, nullable=False)
-    feed          = Column(Integer, ForeignKey('feeds.nudoss'))
-    dlleds        = relationship('DLLed', backref='dlleds')
+    __tablename__  = 'rules'
+    nudoss         = Column(Integer, primary_key=True)
+    is_active      = Column(Boolean, default=False)
+    name           = Column(String, nullable=False)
+    dest           = Column(String, nullable=False)
+    regex          = Column(String, nullable=False)
+    feed           = Column(Integer, ForeignKey('feeds.nudoss'))
+    dlleds         = relationship('DLLed', backref='dlleds')
+    __table_args__ = (UniqueConstraint('dest', 'regex', 'feed',  name='uq_rule'),)
 
     def __init__(self, name, dest, regex, feed_id):
         self.name  = name
@@ -119,12 +120,12 @@ def run_feeds():
         Session = sessionmaker(bind=engine)
         s       = Session()
         logger.info('Reading configuration files and inserting into database.')
-        with open(dest_fic) as f1:
+        with open(feed_fic) as f1:
             for w1 in csv.reader(f1):
-                s.add(Recipient(w1[0]))
-        with open(serv_fic) as f2:
+                s.add(Feed(w1[0]))
+        with open(rule_fic) as f2:
             for w2 in csv.reader(f2):
-                s.add(Server(w2[0], int(w2[1]), w2[2], w2[3], w2[4]))
+                s.add(Rule(w2[0], w2[1], w2[2], int(w2[3])))
         s.commit()
     else:
         if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
@@ -134,60 +135,38 @@ def run_feeds():
             s       = Session()
             logger.info('Reading configuration files and updating database if needed.')
             with open(feed_fic) as f1:
-                data      = list(csv.reader(f1))
+                data      = [i for i in csv.reader(f1)]
                 row_count = len(data)
                 db_count  = s.query(Feed.nudoss).count()
                 logger.debug('1001102 - 2 - Feeds relative informations =')
-                logger.debug('Number of rows in csv file : ' + row_count)
-                logger.debug('Number of queryed feeds    : ' + db_count)
+                logger.debug('Number of rows in csv file : ' + str(row_count))
+                logger.debug('Number of queryed feeds    : ' + str(db_count))
                 if  row_count == db_count:
-                    logger.info('Nothing to update for feeds')
+                    logger.info('Nothing to update.')
                 else:
                     for row in data:
-                        if
-            with open(dest_fic) as f1:
-                for w1 in csv.reader(f1):
-                    s.add(Recipient(w1[0]))
-            with open(serv_fic) as f2:
-                for w2 in csv.reader(f2):
-                    s.add(Server(w2[0], int(w2[1]), w2[2], w2[3], w2[4]))
+                        if s.query(Feed).filter_by(feed_url=row[0]).first() is None:
+                            s.add(Feed(row[0]))
+            with open(rule_fic) as f2:
+                data      = [i for i in csv.reader(f2)]
+                row_count = len(data)
+                db_count  = s.query(Rule.nudoss).count()
+                logger.debug('1001102 - 3 - Rules relative informations =')
+                logger.debug('Number of rows in csv file : ' + str(row_count))
+                logger.debug('Number of queryed feeds    : ' + str(db_count))
+                if  row_count == db_count:
+                    logger.info('Nothing to update.')
+                else:
+                    for row in data:
+                        if s.query(Rule).filter( (Rule.dest == row[1]) & (Rule.regex == row[2]) & (Rule.feed == int(row[3])) ).first() is None:
+                            s.add(Rule(row[0], row[1], row[2], int(row[3])))
             s.commit()
-
     logger.info('Database is ready for business')
 
-    logger.info('Running recipients.')
-    Session1 = sessionmaker(bind=engine)
-    s1       = Session1()
-    serv     = s1.query(Server).first()
+    logger.info('Running Rules.')
+    Session  = sessionmaker(bind=engine)
+    s        = Session()
 
-    logger.info('Sending emails')
-    sm      = SendMail(serv.hostname, serv.port, serv.username)
-    recs    = [x.mail for x in s1.query(Recipient).all()]
-    subject = '[DISPO] {0}'.format(get_current_timestamp(),)
-    sender  = serv.sender
-    send    = False
-    for case in Switch(imperium):
-        if case('arrivee'):
-            msg  = 'Ready for business.'
-            send = True
-            break
-        if case('depart'):
-            msg  = 'Bonne soirée'
-            send = True
-            break
-        if case('depart_pause'):
-            msg  = 'Go pause, a toute.'
-            send = True
-            break
-        if case('fin_pause'):
-            msg  = 'Re.'
-            send = True
-            break
-    if send:
-        for rec in recs:
-            sm.send_mail(sender, subject, msg, [rec], [])
-    else:
-        logger.info('Nothing to be done.')
     logger.debug('100102 - END')
 
 #==========================================================================

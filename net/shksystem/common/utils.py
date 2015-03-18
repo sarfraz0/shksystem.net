@@ -137,5 +137,11 @@ def remove_existing_fics(list_of_fics):
         if os.path.isfile:
             os.unlink(p)
 
+def remove_csv_duplicates(csv_fic):
+    pass
+
+def feed_db(csv_fic, lambda_feed):
+
+
 #==========================================================================
 #0
