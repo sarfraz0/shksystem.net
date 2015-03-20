@@ -5,3 +5,4 @@ requests
 paramiko
 Flask-Login
 Flask-Migrate
+apscheduler

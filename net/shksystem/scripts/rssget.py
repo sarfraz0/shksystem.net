@@ -34,7 +34,7 @@ from sqlalchemy.ext.declarative     import declarative_base
 from sqlalchemy.orm                 import sessionmaker, relationship
 # custom
 from net.shksystem.common.error     import FileNotFound
-from net.shksystem.common.utils     import get_current_timestamp
+from net.shksystem.common.utils     import get_current_timestamp, sqlite_alchemy_feed
 from net.shksystem.common.send_mail import SendMail
 from net.shksystem.common.logic     import Switch
 
@@ -94,80 +94,92 @@ class DLLed(Base):
 # -- PROCESSES
 # -------------------------------------------------------------------------
 def run_feeds():
-    logger.debug('100102 - BEGIN')
 
     conf_dir  = os.path.abspath('../etc/{0}'.format(base_name,))
     feed_fic  = os.path.join(conf_dir, 'feeds.csv')
     rule_fic  = os.path.join(conf_dir, 'rules.csv')
     db_fic    = os.path.join(conf_dir, '{0}.db'.format(base_name,))
-    logger.debug('100102 - 1 - Setting up configuration files =')
     logger.debug('Configuration directory : ' + conf_dir)
     logger.debug('Feed list csv           : ' + feed_fic)
-    logger.debug('Rule list csv           : ' + db_fic)
+    logger.debug('Rule list csv           : ' + rule_fic)
     logger.debug('SQLite database path    : ' + db_fic)
-    engine    = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
+    engine = create_engine('sqlite:///' + db_fic.replace('\\', '\\\\'))
 
     logger.info('#### Processing all feeds. ####')
 
-    logger.info('Checking data.')
     if not os.path.isfile(db_fic):
         logger.info('Database file does not exist. Creating it.')
         if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
             logger.error('Required data files do not exist. Please create them and run again.')
             raise FileNotFound
         Base.metadata.create_all(engine)
-        logger.info('Creating session to feed database.')
-        Session = sessionmaker(bind=engine)
-        s       = Session()
-        logger.info('Reading configuration files and inserting into database.')
-        with open(feed_fic) as f1:
-            for w1 in csv.reader(f1):
-                s.add(Feed(w1[0]))
-        with open(rule_fic) as f2:
-            for w2 in csv.reader(f2):
-                s.add(Rule(w2[0], w2[1], w2[2], int(w2[3])))
-        s.commit()
-    else:
-        if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
-            logger.info('Required data files do not exist. Database does not need updates.')
-        else:
-            Session = sessionmaker(bind=engine)
-            s       = Session()
-            logger.info('Reading configuration files and updating database if needed.')
-            with open(feed_fic) as f1:
-                data      = [i for i in csv.reader(f1)]
-                row_count = len(data)
-                db_count  = s.query(Feed.nudoss).count()
-                logger.debug('1001102 - 2 - Feeds relative informations =')
-                logger.debug('Number of rows in csv file : ' + str(row_count))
-                logger.debug('Number of queryed feeds    : ' + str(db_count))
-                if  row_count == db_count:
-                    logger.info('Nothing to update.')
-                else:
-                    for row in data:
-                        if s.query(Feed).filter_by(feed_url=row[0]).first() is None:
-                            s.add(Feed(row[0]))
-            with open(rule_fic) as f2:
-                data      = [i for i in csv.reader(f2)]
-                row_count = len(data)
-                db_count  = s.query(Rule.nudoss).count()
-                logger.debug('1001102 - 3 - Rules relative informations =')
-                logger.debug('Number of rows in csv file : ' + str(row_count))
-                logger.debug('Number of queryed feeds    : ' + str(db_count))
-                if  row_count == db_count:
-                    logger.info('Nothing to update.')
-                else:
-                    for row in data:
-                        if s.query(Rule).filter( (Rule.dest == row[1]) & (Rule.regex == row[2]) & (Rule.feed == int(row[3])) ).first() is None:
-                            s.add(Rule(row[0], row[1], row[2], int(row[3])))
-            s.commit()
+    sqlite_alchemy_feed(feed_fic, db_fic, (Feed, lambda x: Feed(x[0])), [0])
+    sqlite_alchemy_feed(rule_fic, db_fic, (Rule, lambda x: Rule(x[0], x[1], x[2], int(x[3]))), [1, 2, 3])
     logger.info('Database is ready for business')
+
+    # logger.info('Checking data.')
+    # if not os.path.isfile(db_fic):
+    #     logger.info('Database file does not exist. Creating it.')
+    #     if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
+    #         logger.error('Required data files do not exist. Please create them and run again.')
+    #         raise FileNotFound
+    #     Base.metadata.create_all(engine)
+    #     logger.info('Creating session to feed database.')
+    #     Session = sessionmaker(bind=engine)
+    #     s       = Session()
+    #     logger.info('Reading configuration files and inserting into database.')
+    #     remove_csv_duplicates(feed_fic)
+    #     with open(feed_fic) as f1:
+    #         for w1 in csv.reader(f1):
+    #             s.add(Feed(w1[0]))
+    #     remove_csv_duplicates(rule_fic)
+    #     with open(rule_fic) as f2:
+    #         for w2 in csv.reader(f2):
+    #             s.add(Rule(w2[0], w2[1], w2[2], int(w2[3])))
+    #     s.commit()
+    # else:
+    #     if not (all(map(os.path.isfile, [feed_fic, rule_fic]))):
+    #         logger.info('Required data files do not exist. Database does not need updates.')
+    #     else:
+    #         Session = sessionmaker(bind=engine)
+    #         s       = Session()
+    #         logger.info('Reading configuration files and updating database if needed.')
+    #         remove_csv_duplicates(feed_fic)
+    #         with open(feed_fic) as f1:
+    #             data      = [i for i in csv.reader(f1)]
+    #             row_count = len(data)
+    #             db_count  = s.query(Feed.nudoss).count()
+    #             logger.debug('1001102 - 2 - Feeds relative informations =')
+    #             logger.debug('Number of rows in csv file : ' + str(row_count))
+    #             logger.debug('Number of queryed feeds    : ' + str(db_count))
+    #             if  row_count == db_count:
+    #                 logger.info('Nothing to update.')
+    #             else:
+    #                 for row in data:
+    #                     if s.query(Feed).filter_by(feed_url=row[0]).first() is None:
+    #                         s.add(Feed(row[0]))
+    #         remove_csv_duplicates(rule_fic)
+    #         with open(rule_fic) as f2:
+    #             data      = [i for i in csv.reader(f2)]
+    #             row_count = len(data)
+    #             db_count  = s.query(Rule.nudoss).count()
+    #             logger.debug('1001102 - 3 - Rules relative informations =')
+    #             logger.debug('Number of rows in csv file : ' + str(row_count))
+    #             logger.debug('Number of queryed feeds    : ' + str(db_count))
+    #             if  row_count == db_count:
+    #                 logger.info('Nothing to update.')
+    #             else:
+    #                 for row in data:
+    #                     if s.query(Rule).filter( (Rule.dest == row[1]) & (Rule.regex == row[2]) & (Rule.feed == int(row[3])) ).first() is None:
+    #                         s.add(Rule(row[0], row[1], row[2], int(row[3])))
+    #         s.commit()
+    # logger.info('Database is ready for business')
 
     logger.info('Running Rules.')
     Session  = sessionmaker(bind=engine)
     s        = Session()
 
-    logger.debug('100102 - END')
+    logger.info('#### Done.')
 
 #==========================================================================
 #0

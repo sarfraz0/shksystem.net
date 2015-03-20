@@ -43,3 +43,10 @@
 	+ added models and draft of model feed to rssget
 * 0.1.3.7
 	+ worked on database feed for rssget
+* 0.1.3.8
+	+ finalized sqlite_alchemy_feed function
+	+ changed init_logger function to initialize root logger
+	+ initialized dump_sqlite_alchemy
+	+ finalized get_uq_comb_in_csv and remove_csv_duplicates
+	+ added apscheduler to requirements.txt
+	+ changed run_feeds function to use feed function
