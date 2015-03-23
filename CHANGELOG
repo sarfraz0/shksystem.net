@@ -50,3 +50,5 @@
 	+ finalized get_uq_comb_in_csv and remove_csv_duplicates
 	+ added apscheduler to requirements.txt
 	+ changed run_feeds function to use feed function
+* 0.1.4.1
+	+ rssget is stable and test ok
