@@ -28,10 +28,8 @@ import logging, logging.handlers
 from subprocess import call
 import shutil
 import tempfile
-import csv
+import re
 # installed
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 # custom
 from net.shksystem.common.error import FileNotFound, CommandFailure
 
@@ -145,15 +143,15 @@ def remove_existing_fics(list_of_fics):
         if os.path.isfile:
             os.unlink(path)
 
-def remove_csv_duplicates(csv_fic):
+def remove_file_duplicates(fic):
     """ This function recreate a file while removing duplicates lines in it
-        remove_csv_duplicates :: FilePath
+        remove_file_duplicates :: FilePath
                               -> IO ()
     """
-    if os.path.isfile(csv_fic):
+    if os.path.isfile(fic):
         try:
             fich, tmp_fic = tempfile.mkstemp()
-            in_file = open(csv_fic, 'r')
+            in_file = open(fic, 'r')
             out_file = open(tmp_fic, 'w')
             seen = set() # fast O(1) amortized lookup
 
@@ -163,16 +161,16 @@ def remove_csv_duplicates(csv_fic):
                 seen.add(line)
                 out_file.write(line)
         except OSError:
-            log.exception('Cannot remove duplicate in csv file : %s.', csv_fic)
+            log.exception('Cannot remove duplicate in file : %s.', fic)
         finally:
             in_file.close()
             out_file.close()
             os.close(fich)
 
-        os.unlink(csv_fic)
-        shutil.move(tmp_fic, csv_fic)
+        os.unlink(fic)
+        shutil.move(tmp_fic, fic)
     else:
-        log.error('Csv file to be filtered does not exist : %s.', csv_fic)
+        log.error('File to be filtered does not exist : %s.', fic)
 
 #==========================================================================
 #0

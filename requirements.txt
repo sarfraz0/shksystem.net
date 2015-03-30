@@ -1,8 +1,8 @@
 passlib
 keyring
 feedparser
-requests
 paramiko
 Flask-Login
 Flask-Migrate
 apscheduler
+pymongo

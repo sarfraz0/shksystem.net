@@ -52,3 +52,5 @@
 	+ changed run_feeds function to use feed function
 * 0.1.4.1
 	+ rssget is stable and test ok
+* 0.1.4.2
+	+ rewrote dllrange (not tested) and rssget to use pymongo+mongodb instead of sqlalchemy+sqlite
