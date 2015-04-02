@@ -54,3 +54,5 @@
 	+ rssget is stable and test ok
 * 0.1.4.2
 	+ rewrote dllrange (not tested) and rssget to use pymongo+mongodb instead of sqlalchemy+sqlite
+* 0.1.5.1
+	+ rssget and dllrange are ready for production

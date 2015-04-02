@@ -29,7 +29,6 @@ from pymongo import MongoClient
 import feedparser
 import transmissionrpc
 # custom
-from net.shksystem.common.error import FileNotFound
 import  net.shksystem.common.utils as utils
 
 #==========================================================================
@@ -38,7 +37,6 @@ import  net.shksystem.common.utils as utils
 
 logger = logging.getLogger(__name__)
 base_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-Base = declarative_base()
 
 #==========================================================================
 # Classes/Functions
@@ -53,7 +51,7 @@ def run_feeds():
     conf_file = os.path.join(conf_dir, '{0}.ini'.format(base_name,))
     if not (all(map(os.path.isfile, [conf_file]))):
         logger.error('Please check if file %s exists.', conf_file)
-        raise FileNotFound
+        raise OSError
     config = configparser.ConfigParser()
     config.read(conf_file)
 
