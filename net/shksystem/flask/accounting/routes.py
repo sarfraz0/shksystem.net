@@ -23,12 +23,12 @@ import os
 import sys
 import logging
 # Environment defined
-from net.shksystem.common.logic            import Switch
-from passlib.hash                          import sha512_crypt
-from flask                                 import Flask, render_template, request, redirect, url_for, session
-from flask.ext.login                       import LoginManager, login_required, login_user, logout_user, current_user
+from net.shksystem.common.logic import Switch
+from passlib.hash import sha512_crypt
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
 # User defined
-from net.shksystem.flask.accounting.models import db, User, Persona, Temp, MailSpool
+from net.shksystem.flask.accounting.models import db, User, Persona, MailSpool
 
 #==========================================================================
 # Environment/Parameters/Static variables
@@ -66,86 +66,84 @@ login_manager.login_view = 'login'
 def login():
     ret = render_template('login.html')
     if request.method == 'POST':
-        pseudo        = request.form['pseudo']
-        passwd        = request.form['password']
-        user          = User.query.filter_by(pseudo=pseudo).first()
+        logger.info('User authentification.')
+        pseudo = request.form['pseudo']
+        passwd = request.form['password']
+        user = User.query.filter_by(pseudo=pseudo).first()
         if user is not None:
+            logger.info('User exists.')
             if user.persona.valid:
+                logger.info('And is valid.')
                 if sha512_crypt.verify(passwd, user.passwhash):
                     login_user(user)
                     ret = redirect(url_for('index'))
-                else:
-                    ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
+            else:
+                logger.info('But is not valid')
+                ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
     return ret
 
 @app.route('/register', methods=['POST'])
 def register():
-    logger.debug('100101 - BEGIN')
     logger.info('Registering new user.')
 
-    pseudo   = request.form['pseudo']
-    passw1   = request.form['passw1']
-    passw2   = request.form['passw1']
-    email    = request.form['email']
-    logger.debug('100101 - 1 - Form for new user is pseudo ({0}), passw1 ({1}), passw2 ({2}) and email ({3}).'.format(pseudo, passw1, passw2, email))
+    pseudo = request.form['pseudo']
+    passw1 = request.form['passw1']
+    passw2 = request.form['passw1']
+    email  = request.form['email']
+    logger.debug('Form for new user is pseudo (%s), passw1 (%s), passw2 (%s) and email (%s).', pseudo, passw1, passw2, email)
 
-    user     = User.query.filter_by(pseudo=pseudo).first()
+    user = User.query.filter_by(pseudo=pseudo).first()
     if user is None:
         logger.info('User does not exist, creating it.')
         if passw1 == passw2:
-            logger.debug('100101 - 2 - Creating new user.')
+            logger.debug('Creating new user...')
             newusr = User(pseudo, passw1, False)
             db.session.add(newusr)
             db.session.flush()
-            newusr_id      = User.query.filter_by(pseudo=pseudo).first().nudoss
-            logger.debug('100101 - 3 - Flushing new user and getting back its id : {0}'.format(newusr_id,))
+            newusr_id = User.query.filter_by(pseudo=pseudo).first().nudoss
+            logger.debug('Flushing new user and getting back its id : %s', newusr_id)
             newusr_persona = Persona(newusr_id, email)
             newusr_persona.set_optionnals(request.form)
-            newusr_temp = Temp(newusr_id)
-            newusr_temp.validation_token = newusr_persona.gen_validation_request()
+            newusr_persona.gen_validation_request()
             db.session.add(newusr_persona)
-            db.session.add(newusr_temp)
             db.session.commit()
-            ret = redirect(url_for('validate', mode='NULL', pseudo_id=0))
-    elif not Persona.query.filter_by(nudoss=user.nudoss).first().validper:
-        logger.info('User does exist but needs validation.')
-        ret = redirect(url_for('validate', mode='NULL', pseudo_id=0))
+            ret = redirect(url_for('validate', mode='VALID', pseudo_id=newusr_id))
+    elif not Persona.query.filter_by(nudoss=user.nudoss).first().valid:
+        logger.info('User does exists but needs validation.')
+        ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
     else:
-        logger.info('Welcome {0}.'.format(user.pseudo))
-        ret = redirect(url_for('index'))
+        logger.info('Welcome %s, please login.', user.pseudo)
+        ret = redirect(url_for('login'))
 
-    logger.debug('100101 - END')
     return ret
 
 @app.route('/register/validate/<mode>/<pseudo_id>', methods=['GET', 'POST'])
 def validate(mode, pseudo_id):
-    logger.debug('100100 - BEGIN')
-    logger.info('Token handling process for user. Action {0} for id {1}.'.format(mode, pseudo_id))
-    logger.debug('100100 - 1 - Argument are mode ({0}) and pseudo_id ({1}).'.format(mode, pseudo_id))
+    ret = render_template('validate.html', mode=mode, pseudo_id=pseudo_id)
+    logger.info('Token handling process for user. Action %s for id %s.', mode, pseudo_id)
+    logger.debug('Argument are mode (%s) and pseudo_id (%s).', mode, pseudo_id)
     user = User.query.get(int(pseudo_id))
-    logger.debug('100100 - 2 - User\'s pseudo is {0}.'.format(user.pseudo))
+    logger.debug('User\'s pseudo is %s.', user.pseudo)
     if request.method == 'POST':
         for case in Switch(mode):
             if case('VALID'):
-                logger.info('Validating user {0}.'.format(user.pseudo,))
-                temporary_stored_token = user.temp.validation_token
-                logger.debug('100100 - 3 - Stored token is {0}.'.format(temporary_stored_token))
-                submited_token         = request.form['token_entry']
-                logger.debug('100100 - 4 - Submited token is {0}.'format(submited_token))
-                if temporary_stored_token == submited_token:
-                    logger.debug('100100 - 5 - Token matches.')
+                logger.info('Validating user %s.', user.pseudo)
+                stored_token = session['NEW_TOKEN'] if 'NEW_TOKEN' in session else user.persona.validation_token
+                logger.debug('Stored token is %s.', stored_token)
+                submited_token = request.form['token_entry']
+                logger.debug('Submited token is %s.', submited_token)
+                if stored_token == submited_token:
+                    logger.debug('Token matches.')
                     user.persona.valid = True
                     db.session.commit()
+                    login_user(user)
+                    ret = redirect(url_for('index'))
             if case('REGEN'):
-                logger.info('Regeneraiton of token for user {0}.'.format(user.pseudo,))
+                logger.info('Regeneration of token for user %s.', user.pseudo)
                 new_token = user.persona.gen_validation_request()
-                logger.debug('100100 - 6 - Regenerating user token')
-                user.temp.validation_token = new_token
+                session['NEW_TOKEN'] = new_token
+                logger.debug('Regenerating user token')
                 db.session.commit()
-    else:
-        logger.info('Request is not post, rendering form.')
-        ret = render_template('validate.html', mode='NULL', pseudo_id=0)
-    logger.debug('100100 - END')
     return ret
 
 @app.route('/index', methods=['GET'])

@@ -26,7 +26,8 @@ import re
 import logging
 import configparser
 # installed
-from pymongo import MongoClient
+import psycopg2
+import keyring
 # custom
 import net.shksystem.common.utils as utils
 
@@ -34,39 +35,46 @@ import net.shksystem.common.utils as utils
 # Environment/Static variables
 #==========================================================================
 
-logger    = logging.getLogger(__name__)
-base_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+logger = logging.getLogger(__name__)
 
 #==========================================================================
 # Classes/Functions
 #==========================================================================
 
-def run_rules():
-    conf_dir = os.path.abspath('../etc'.format(base_name,))
-    conf_file = os.path.join(conf_dir, '{0}.ini'.format(base_name,))
+def run_rules(conf_file):
     if not (all(map(os.path.isfile, [conf_file]))):
         logger.error('Please check if file %s exists.', conf_file)
         raise OSError
+
     config = configparser.ConfigParser()
     config.read(conf_file)
 
     db_host = config.get('database', 'host')
     db_port = config.getint('database', 'port')
-    db_name = config.get('database', 'db_name')
+    db_name = config.get('database', 'name')
+    db_user = config.get('database', 'user')
+    db_use_pwd = config.getboolean('database', 'use_pwd')
+    db_ssl = config.get('database', 'ssl')
+    source = config.get('script', 'source')
 
-    client = MongoClient(db_host, db_port)
-    db = client[db_name]
+    ctx = None
+    c = None
+    try:
+        if db_use_pwd:
+            passwd = keyring.get_password(db_host, db_user)
+            ctx = psycopg2.connect(database=db_name, user=db_user, password=passwd, host=db_host, port=db_port, sslmode=db_ssl)
+        else:
+            ctx = psycopg2.connect(database=db_name, user=db_user, host=db_host, port=db_port, sslmode=db_ssl)
 
-    sources = db[base_name + '_sources']
-    rules = db[base_name + '_rules']
+        c = ctx.cursor()
 
-    for source in sources.find().distinct('path'):
-        logger.info('Processing source : {0}.'.format(source,))
-
-        logger.info('There is %d rules to process', rules.count())
-        for rule in rules.find():
-            logger.info('Treating rule named : {0}'.format(rule['name'],))
-            dest = os.path.join(rule['cat'], rule['name'])
+        logger.info('Processing source : %s.', source)
+        c.execute('SELECT COUNT(*) FROM rules')
+        logger.info('There is %d rules to process', c.fetchone()[0])
+        c.execute('SELECT * FROM rules')
+        for rule in c.fetchall():
+            logger.info('Treating rule named : %s', rule[1])
+            dest = os.path.join(rule[3], rule[1])
             if not os.path.isdir(dest):
                 try:
                     os.mkdir(dest)
@@ -75,8 +83,8 @@ def run_rules():
                     continue
 
             for filename in os.listdir(source):
-                if re.match(rule['regex'], filename.strip().lower()):
-                    logger.info('Filename {0} matches rule.'.format(filename,))
+                if re.match(rule[2], filename.strip().lower()):
+                    logger.info('Filename %s matches rule.', filename)
                     dest_path = os.path.join(dest, filename)
                     source_path = os.path.join(source, filename)
                     try:
@@ -85,6 +93,13 @@ def run_rules():
                         pass
                     logger.info('Moving file.')
                     shutil.move(source_path, dest_path)
+    except:
+        logger.exception('')
+    finally:
+        if c is not None:
+            c.close()
+        if ctx is not None:
+            ctx.close()
 
 #==========================================================================
 #0

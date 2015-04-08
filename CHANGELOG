@@ -56,3 +56,8 @@
 	+ rewrote dllrange (not tested) and rssget to use pymongo+mongodb instead of sqlalchemy+sqlite
 * 0.1.5.1
 	+ rssget and dllrange are ready for production
+* 0.1.6.1
+	+ rewrote dllrange and rssget again to use raw sql
+	+ added mail notification to rssget
+	+ code is in production
+	+ added back accounting and worked on it (bug on validation token)

@@ -31,7 +31,6 @@ import tempfile
 import re
 # installed
 # custom
-from net.shksystem.common.error import FileNotFound, CommandFailure
 
 #==========================================================================
 # Environment/Static variables
@@ -72,7 +71,7 @@ def compile_tex(tex_source_file):
     """
     if not os.path.isfile(tex_source_file):
         log.warn('Input file does not exist : %s.', tex_source_file)
-        raise FileNotFound
+        raise OSError
     tex_file_name = os.path.splitext(tex_source_file)[0]
     exts = ['aux', 'log']
 
@@ -80,7 +79,7 @@ def compile_tex(tex_source_file):
     code = call(['pdflatex', '-interaction=nonstopmode', tex_source_file, '>', os.devnull])
     if code != 0:
         log.warn('Compilation failure.')
-        raise CommandFailure
+        raise IOError
 
     for ext in exts:
         final_file = '{0}{1}{2}'.format(tex_file_name, os.extsep, ext)
@@ -171,6 +170,28 @@ def remove_file_duplicates(fic):
         shutil.move(tmp_fic, fic)
     else:
         log.error('File to be filtered does not exist : %s.', fic)
+
+
+class Token(object):
+        """ Class that create, check, delete a temporary cookie containing a random hash
+        """
+
+        def __init__(self, token_dir, name):
+            self._base_token_path = token_dir
+            self._token_name = name
+            self._token_path = os.path.join(token_dir, name)
+
+        def validate_hash(self, hash_value):
+            pass
+
+        def is_token(self):
+            pass
+
+        def create_token(self):
+            pass
+
+        def remove_token(self):
+            pass
 
 #==========================================================================
 #0
