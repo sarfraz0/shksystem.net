@@ -61,3 +61,5 @@
 	+ added mail notification to rssget
 	+ code is in production
 	+ added back accounting and worked on it (bug on validation token)
+* 0.1.6.2
+	+ fixed validation token check

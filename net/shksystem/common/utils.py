@@ -21,7 +21,6 @@
 
 # standard
 import os
-import binascii
 import random
 import datetime
 import logging, logging.handlers
@@ -96,13 +95,6 @@ def get_current_timestamp():
     ret = datetime.datetime.now().isoformat()
     return ret
 
-def gen_random_token(token_len):
-    """ This function generate random token_len lenght token
-        gen_random_token :: IO String
-    """
-    ret = binascii.hexlify(os.urandom(token_len))
-    return ret
-
 def get_random_elem(lst):
     """ This function returns the nth element of a list
         get_random_elem :: [a]
@@ -170,28 +162,6 @@ def remove_file_duplicates(fic):
         shutil.move(tmp_fic, fic)
     else:
         log.error('File to be filtered does not exist : %s.', fic)
-
-
-class Token(object):
-        """ Class that create, check, delete a temporary cookie containing a random hash
-        """
-
-        def __init__(self, token_dir, name):
-            self._base_token_path = token_dir
-            self._token_name = name
-            self._token_path = os.path.join(token_dir, name)
-
-        def validate_hash(self, hash_value):
-            pass
-
-        def is_token(self):
-            pass
-
-        def create_token(self):
-            pass
-
-        def remove_token(self):
-            pass
 
 #==========================================================================
 #0

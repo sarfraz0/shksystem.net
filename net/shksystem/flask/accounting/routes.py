@@ -120,10 +120,8 @@ def register():
 @app.route('/register/validate/<mode>/<pseudo_id>', methods=['GET', 'POST'])
 def validate(mode, pseudo_id):
     ret = render_template('validate.html', mode=mode, pseudo_id=pseudo_id)
-    logger.info('Token handling process for user. Action %s for id %s.', mode, pseudo_id)
-    logger.debug('Argument are mode (%s) and pseudo_id (%s).', mode, pseudo_id)
+    logger.info('Action %s for id %s.', mode, pseudo_id)
     user = User.query.get(int(pseudo_id))
-    logger.debug('User\'s pseudo is %s.', user.pseudo)
     if request.method == 'POST':
         for case in Switch(mode):
             if case('VALID'):
@@ -142,8 +140,8 @@ def validate(mode, pseudo_id):
                 logger.info('Regeneration of token for user %s.', user.pseudo)
                 new_token = user.persona.gen_validation_request()
                 session['NEW_TOKEN'] = new_token
-                logger.debug('Regenerating user token')
                 db.session.commit()
+                redirect(url_for('validate', mode='VALID', pseudo_id=pseudo_id))
     return ret
 
 @app.route('/index', methods=['GET'])

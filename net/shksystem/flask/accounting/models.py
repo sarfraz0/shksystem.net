@@ -18,10 +18,14 @@
 # Imports
 #==========================================================================
 
+#standard
+import uuid
+#installed
 import keyring
 from passlib.hash import sha512_crypt
 from flask.ext.sqlalchemy import SQLAlchemy
-from net.shksystem.common.utils import get_current_timestamp, get_random_elem, gen_random_token
+#custom
+from net.shksystem.common.utils import get_current_timestamp, get_random_elem
 from net.shksystem.common.send_mail import SendMail
 
 #==========================================================================
@@ -97,10 +101,10 @@ class Persona(db.Model):
         self.num_connected += 1
 
     def gen_validation_request(self):
-        token = gen_random_token(12)
+        token = str(uuid.uuid4())
         minfos = get_random_elem(MailSpool.query.all())
-        mailer = SendMail(minfos.mail_server, minfos.mail_port, minfos.mail_username)
-        mailer.send_mail(minfos.full_sender, '', '', [self.email])
+        #mailer = SendMail(minfos.mail_server, minfos.mail_port, minfos.mail_username)
+        #mailer.send_mail(minfos.full_sender, '', '', [self.email])
         self.validation_token = token
         return token
 
