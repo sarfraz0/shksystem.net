@@ -25,7 +25,7 @@ import logging
 # Environment defined
 from net.shksystem.common.logic import Switch
 from passlib.hash import sha512_crypt
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
 # User defined
 from net.shksystem.flask.accounting.models import db, User, Persona, MailSpool
@@ -76,6 +76,7 @@ def login():
                 logger.info('And is valid.')
                 if sha512_crypt.verify(passwd, user.passwhash):
                     login_user(user)
+                    flash('Login sucess, welcome {0}'.format(current_user.pseudo,), 'success')
                     ret = redirect(url_for('index'))
             else:
                 logger.info('But is not valid')
