@@ -65,3 +65,7 @@
 	+ fixed validation token check
 * 0.1.6.3
 	+ added flash messages capabilities to accounting
+* 0.1.6.4
+	+ added mandll flask project
+	+ corrected uninitialized variable in deploy_liv
+	+ worked some on accounting

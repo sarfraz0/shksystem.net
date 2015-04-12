@@ -157,6 +157,8 @@ def run_deployment():
     for compo in comps:
         logger.info('----> Runing rules for component {0}/{1}'.format(compo.env_group, compo.rule_comp))
         for compu in compo.computers:
+            tr = None
+            sf = None
             try:
                 tr = paramiko.Transport((compu.hostname, compu.port))
                 tr.connect(username=compu.username, password=compu.password)
@@ -170,8 +172,10 @@ def run_deployment():
                     logger.info('--------> Transfert of {0} to {1} done.'.format(rule.source, rule.target))
                 logger.info('------> All rules treated for current computer.')
             finally:
-                sf.close()
-                tr.close()
+                if sf is not None:
+                    sf.close()
+                if tr is not None:
+                    tr.close()
         logger.info('----> Rules ran dry for component.')
     logger.info('--> All component have been deployed')
 

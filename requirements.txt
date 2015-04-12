@@ -6,3 +6,4 @@ Flask-Login
 Flask-Migrate
 apscheduler
 pymongo
+validate_email

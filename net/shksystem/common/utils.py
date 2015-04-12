@@ -163,5 +163,29 @@ def remove_file_duplicates(fic):
     else:
         log.error('File to be filtered does not exist : %s.', fic)
 
+def intersperse(iterable, delimiter):
+    """ This function adds given string between elements of a list
+        http://stackoverflow.com/questions/5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
+        intersperse :: [String]
+                    -> String
+                    -> [String]
+    """
+    it = iter(iterable)
+    yield next(it)
+    for x in it:
+        yield delimiter
+        yield x
+
+def format_to_regex(to_format):
+    ret = ''
+    ret = to_format.lower().strip()
+    for c in ['-', '_']:
+        ret = ret.replace(c, '.*')
+    ret = ''.join(intersperse(ret.split(' '), '.*'))
+    ret = ret.translate(dict.fromkeys(map(ord, '!?'), None))
+    ret = '^.*' + ret + '.*$'
+
+    return ret
+
 #==========================================================================
 #0
