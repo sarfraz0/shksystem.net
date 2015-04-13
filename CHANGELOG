@@ -69,3 +69,5 @@
 	+ added mandll flask project
 	+ corrected uninitialized variable in deploy_liv
 	+ worked some on accounting
+* 0.1.6.5
+	+ workded some on mandll
