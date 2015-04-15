@@ -71,3 +71,7 @@
 	+ worked some on accounting
 * 0.1.6.5
 	+ workded some on mandll
+* 0.1.6.6
+	+ added content to mandll interface (tabs, tables, button)
+	+ replaced javascripts import on mandll
+	+ modified index route in mandll to query only once of if needed (and added post condition)
