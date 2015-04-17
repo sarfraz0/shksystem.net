@@ -4,6 +4,7 @@ feedparser
 paramiko
 Flask-Login
 Flask-Migrate
+flask-csrf
 apscheduler
 pymongo
 validate_email

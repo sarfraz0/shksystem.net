@@ -5,6 +5,7 @@
 
 {% if mode == 'MODIFY' %}
 <form action="{{ url_for('manage_mail_spool', mode='MODIFY') }}" method="post">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
   <div class="row">
     <div class="large-12 columns">
       <fieldset>
@@ -114,6 +115,7 @@
 
 {% if mode == 'REMOVE' %}
 <form action="{{ url_for('manage_mail_spool', mode='REMOVE') }}" method="post">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
   <div class="row">
     <div class="large-12 columns">
       <fieldset>

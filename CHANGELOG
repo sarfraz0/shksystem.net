@@ -75,3 +75,7 @@
 	+ added content to mandll interface (tabs, tables, button)
 	+ replaced javascripts import on mandll
 	+ modified index route in mandll to query only once of if needed (and added post condition)
+* 0.1.6.7
+	+ added csrf hiden tag to html forms in accounting
+	+ added mandll evolutions to accounting (config appname, foundation imports rework, notification cleanup)
+	+ trying to add html template for email registration

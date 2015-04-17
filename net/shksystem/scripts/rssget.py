@@ -106,9 +106,16 @@ def run_feeds(conf_file):
                 for entry in rss.entries:
                     title = entry['title'].strip().lower()
                     if re.match(rule[2], title) and (title not in already_got):
-                        c.execute('INSERT INTO dlleds(filename, dayofdown, rule_id) VALUES (\'{0}\', \'{1}\', {2})'
-                                  .format(title, utils.get_current_timestamp(), rule[0]))
-                        rc.add_torrent(entry['torrent_magneturi'])
+                        try:
+                            rc.add_torrent(entry['torrent_magneturi'])
+                            c.execute('INSERT INTO dlleds(filename, dayofdown, rule_id) VALUES (\'{0}\', \'{1}\', {2})'
+                                      .format(title, utils.get_current_timestamp(), rule[0]))
+                        except transmissionrpc.error.TransmissionError:
+                            logger.exception('Unable to add new torrent.')
+                            break
+                        except psycopg2.ProgrammingError:
+                            logger.exception('Unable to persist download filename.')
+                            break
                         logger.info('Torrent %s added.', title)
                         subject = 'New video.'
                         msg = 'The file {0} will soon be available. Download in progress...'.format(title,)

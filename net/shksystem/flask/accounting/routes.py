@@ -27,6 +27,7 @@ from net.shksystem.common.logic import Switch
 from passlib.hash import sha512_crypt
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
+from flaskext.csrf import csrf
 from validate_email import validate_email
 # User defined
 from net.shksystem.flask.accounting.models import db, User, Persona, MailSpool
@@ -40,6 +41,11 @@ logger = logging.getLogger(__name__)
 # -- FLASK INIT
 # -------------------------------------------------------------------------
 app = Flask(__name__)
+
+
+# -- FLASK CSRF
+# -------------------------------------------------------------------------
+csrf(app)
 
 # -- FLASK ALCHEMY
 # -------------------------------------------------------------------------

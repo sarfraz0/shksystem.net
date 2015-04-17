@@ -23,6 +23,7 @@ import uuid
 #installed
 import keyring
 from passlib.hash import sha512_crypt
+from flask import render_template
 from flask.ext.sqlalchemy import SQLAlchemy
 #custom
 from net.shksystem.common.utils import get_current_timestamp, get_random_elem
@@ -103,6 +104,7 @@ class Persona(db.Model):
     def gen_validation_request(self):
         token = str(uuid.uuid4())
         minfos = get_random_elem(MailSpool.query.all())
+        html = render_template('user_registration_mail.html', validation_token=token, iud=self.user_id)
         #mailer = SendMail(minfos.mail_server, minfos.mail_port, minfos.mail_username)
         #mailer.send_mail(minfos.full_sender, '', '', [self.email])
         self.validation_token = token
