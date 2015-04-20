@@ -21,14 +21,18 @@
 # standard
 import os
 import sys
+import time
 import logging
 import re
 import configparser
 # installed
-import psycopg2
+from celery import Celery
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship, backref
 import keyring
 import feedparser
-import transmissionrpc
+from transmissionrpc import Client as TrCli
 # custom
 import net.shksystem.common.utils as utils
 from net.shksystem.common.send_mail import SendMail
@@ -38,15 +42,73 @@ from net.shksystem.common.send_mail import SendMail
 #==========================================================================
 
 logger = logging.getLogger(__name__)
+Base = declarative_base()
+queue = Celery('tasks', backend='amqp://', broker='amqp://')
 
 #==========================================================================
 # Classes/Functions
 #==========================================================================
 
+# -- MODELS
+# -------------------------------------------------------------------------
+
+class Feed(Base):
+    __tablename__ = 'feeds'
+    nudoss = Column(Integer, primary_key=True)
+    url = Column(String, nullable=False)
+    rules = relationship('Rule', backref='feed')
+
+class Rule(Base):
+    __tablename__ = 'rules'
+    nudoss = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    regex = Column(String, nullable=False)
+    feed_id = Column(Integer, ForeignKey('feeds.nudoss'), nullable=False)
+    dlleds = relationship('DLLed', backref='rule')
+
+class DLLed(Base):
+    __tablename__ = 'dlleds'
+    nudoss = Column(Integer, primary_key=True)
+    filename = Column(String, nullable=False)
+    dayofdown = Column(String, nullable=False)
+    rule_id = Column(Integer, ForeignKey('rules.nudoss'), nullable=False)
+
 # -- PROCESSES
 # -------------------------------------------------------------------------
 
-def run_feeds(conf_file):
+@queue.task
+def run_feed(feed_id, cnf):
+    Session = sessionmaker(bind=create_engine(cnf['DB_URI']))
+    db = Session()
+    rc = transmissionrpc.Client(cnf['TRANSMISSION']['HOST'], cnf['TRANSMISSION']['PORT'])
+    c.execute('SELECT url FROM feeds WHERE id={0}'.format(feed_id,))
+    feed = db.query(Feed).filter(feed_id=feed_id).fetchone()
+    rss = feedparser.parse(feed.url)
+    logger.info('Current feed : %s', feed.url)
+    for rule in feed.rules:
+        logger.info('Running rule : %s', rule.title)
+        already_got = [x[0] for x in c.fetchall()]
+        for entry in rss.entries:
+            title = entry['title'].strip().lower()
+            if re.match(rule[2], title) and (title not in already_got):
+                try:
+                    rc.add_torrent(entry['torrent_magneturi'])
+                    c.execute('INSERT INTO dlleds(filename, dayofdown, rule_id) VALUES (\'{0}\', \'{1}\', {2})'
+                              .format(title, utils.get_current_timestamp(), rule[0]))
+                except transmissionrpc.error.TransmissionError:
+                    logger.exception('Unable to add new torrent.')
+                    break
+                except psycopg2.ProgrammingError:
+                    logger.exception('Unable to persist download filename.')
+                    break
+                logger.info('Torrent %s added.', title)
+                subject = 'New video.'
+                msg = 'The file {0} will soon be available. Download in progress...'.format(title,)
+                to = msg_to.split(',')
+                mail.send_mail(msg_from, subject, msg, to)
+    dbcon.commit()
+
+def run_feeds(cnf):
     if not (all(map(os.path.isfile, [conf_file]))):
         logger.error('Please check if file %s exists.', conf_file)
         raise OSError
@@ -74,6 +136,7 @@ def run_feeds(conf_file):
         if db_use_pwd:
             passwd = keyring.get_password(db_host, db_user)
             ctx = psycopg2.connect(database=db_name, user=db_user, password=passwd, host=db_host, port=db_port, sslmode=db_ssl)
+            db_url = 'psycopg2+postgresql://{0}:{1}@{2}:{3}/{4}{5}'.format(db_user, passwd, db_host, db_port, db_name, db_ssl)
         else:
             ctx = psycopg2.connect(database=db_name, user=db_user, host=db_host, port=db_port, sslmode=db_ssl)
 
@@ -90,38 +153,17 @@ def run_feeds(conf_file):
         logger.info('Number of rules    : %d', cnt_rules)
         logger.info('Number of feeds    : %d', cnt_feeds)
 
-        rc = transmissionrpc.Client(tr_host, tr_port)
         mail = SendMail(msg_host, msg_port, msg_user)
         c.execute('SELECT DISTINCT feed_id FROM rules')
+        all_tasks = []
         for feed_id in [x[0] for x in c.fetchall()]:
-            c.execute('SELECT url FROM feeds WHERE id={0}'.format(feed_id,))
-            url = c.fetchone()[0]
-            rss = feedparser.parse(url)
-            logger.info('Current feed : %s', url)
-            c.execute('SELECT * FROM rules WHERE feed_id={0}'.format(feed_id,))
-            for rule in c.fetchall():
-                logger.info('Running rule : %s', rule[1])
-                c.execute('SELECT filename FROM dlleds WHERE rule_id={0}'.format(rule[0]))
-                already_got = [x[0] for x in c.fetchall()]
-                for entry in rss.entries:
-                    title = entry['title'].strip().lower()
-                    if re.match(rule[2], title) and (title not in already_got):
-                        try:
-                            rc.add_torrent(entry['torrent_magneturi'])
-                            c.execute('INSERT INTO dlleds(filename, dayofdown, rule_id) VALUES (\'{0}\', \'{1}\', {2})'
-                                      .format(title, utils.get_current_timestamp(), rule[0]))
-                        except transmissionrpc.error.TransmissionError:
-                            logger.exception('Unable to add new torrent.')
-                            break
-                        except psycopg2.ProgrammingError:
-                            logger.exception('Unable to persist download filename.')
-                            break
-                        logger.info('Torrent %s added.', title)
-                        subject = 'New video.'
-                        msg = 'The file {0} will soon be available. Download in progress...'.format(title,)
-                        to = msg_to.split(',')
-                        mail.send_mail(msg_from, subject, msg, to)
-        ctx.commit()
+            task = run_feed.delay(feed_id, ctx, tr_host, tr_port, mail)
+            all_tasks.append(task)
+        print('Processing tasks...')
+        while not all([x.ready() for x in all_tasks]):
+            time.sleep(2)
+            print('...')
+
     except:
         logger.exception('')
     finally:

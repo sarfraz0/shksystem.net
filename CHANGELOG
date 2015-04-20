@@ -79,3 +79,5 @@
 	+ added csrf hiden tag to html forms in accounting
 	+ added mandll evolutions to accounting (config appname, foundation imports rework, notification cleanup)
 	+ trying to add html template for email registration
+* 0.1.6.8
+	+ rewrite of rssget to use sqlalchemy and celery (in progress)
