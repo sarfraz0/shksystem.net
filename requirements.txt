@@ -2,9 +2,9 @@ passlib
 keyring
 feedparser
 paramiko
+psycopg2
+transmissionrpc
 Flask-Login
 Flask-Migrate
 flask-csrf
-apscheduler
-pymongo
-validate_email
+Celery
