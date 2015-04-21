@@ -81,3 +81,7 @@
 	+ trying to add html template for email registration
 * 0.1.6.8
 	+ rewrite of rssget to use sqlalchemy and celery (in progress)
+* 0.1.6.9
+    + finalized rewrite of rssget and tests
+* 0.1.6.10
+    + commit of the changelog
