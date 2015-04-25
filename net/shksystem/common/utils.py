@@ -1,45 +1,37 @@
 # -*- coding: utf-8 -*-
 
-""" #@(#)------------------------------------------------------------------
-    #@(#) OBJET            : Process helpers
-    #@(#)------------------------------------------------------------------
-    #@(#) AUTEUR           : Sarfraz Kapasi
-    #@(#) DATE DE CREATION : 03.01.2015
-    #@(#) LICENSE          : GPL-3
-    #@(#)------------------------------------------------------------------
 """
-#==========================================================================
-#
-# WARNINGS
-# NONE
-#
-#==========================================================================
+    OBJET            : Process helpers
+    AUTEUR           : Sarfraz Kapasi
+    DATE DE CREATION : 03.01.2015
+    LICENSE          : GPL-3
+"""
 
-#==========================================================================
+# -----------------------------------------------------------------------------
 # Imports
-#==========================================================================
+# -----------------------------------------------------------------------------
 
 # standard
 import os
-import random
-import datetime
-import logging, logging.handlers
+from datetime import datetime
+from logging import getLogger, StreamHandler
+from logging.handlers import RotatingFileHandler
 from subprocess import call
-import shutil
-import tempfile
-import re
+from shutil import move
+from tempfile import mkstemp
 # installed
 # custom
 
-#==========================================================================
+# -----------------------------------------------------------------------------
 # Environment/Static variables
-#==========================================================================
+# -----------------------------------------------------------------------------
 # NONE
-#==========================================================================
-# Classes/Functions
-#==========================================================================
+# -----------------------------------------------------------------------------
+# Classes and Functions
+# -----------------------------------------------------------------------------
 
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
+
 
 def init_logger(log_path, log_level):
     """ This function add console and file handlers to a Logger object
@@ -47,14 +39,17 @@ def init_logger(log_path, log_level):
                    -> String
                    -> IO Logger
     """
-    loggo = logging.getLogger()
+    loggo = getLogger()
     # setting formatter
-    formater = logging.Formatter("%(asctime)s %(name)s %(levelname)s - %(message)s", "%d-%m %H:%M")
+    formater = logging \
+        .Formatter("%(asctime)s %(name)s %(levelname)s - %(message)s",
+                   "%d-%m %H:%M")
     # configuring rotation
-    rotate_file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=5000000, backupCount=5)
+    rotate_file_handler = RotatingFileHandler(log_path,
+                                              maxBytes=5000000, backupCount=5)
     rotate_file_handler.setFormatter(formater)
     # adding console output
-    console_handler = logging.StreamHandler()
+    console_handler = StreamHandler()
     console_handler.setFormatter(formater)
     # configuring logger
     loggo.setLevel(log_level)
@@ -63,8 +58,10 @@ def init_logger(log_path, log_level):
 
     return loggo
 
+
 def compile_tex(tex_source_file):
-    """ This function calls pdflatex on LaTEX source file and performs basic cleanup afterwards
+    """ This function calls pdflatex on LaTEX source file and performs basic
+    cleanup afterwards
         compileTex :: FilePath
                    -> IO ()
     """
@@ -75,7 +72,8 @@ def compile_tex(tex_source_file):
     exts = ['aux', 'log']
 
     log.info('Calling pdflatex on %s.', tex_source_file)
-    code = call(['pdflatex', '-interaction=nonstopmode', tex_source_file, '>', os.devnull])
+    code = call(['pdflatex', '-interaction=nonstopmode',
+                 tex_source_file, '>', os.devnull])
     if code != 0:
         log.warn('Compilation failure.')
         raise IOError
@@ -88,20 +86,15 @@ def compile_tex(tex_source_file):
 
     log.info('Compilation success.')
 
+
 def get_current_timestamp():
-    """ This function gets current date and time with the following format: dd/mm/yy:HH:MM
+    """ This function gets current date and time with the following
+    format: dd/mm/yy:HH:MM
         get_current_timestamp :: IO String
     """
-    ret = datetime.datetime.now().isoformat()
+    ret = datetime.now().isoformat()
     return ret
 
-def get_random_elem(lst):
-    """ This function returns the nth element of a list
-        get_random_elem :: [a]
-                        -> IO a
-    """
-    ret = random.choice(lst)
-    return ret
 
 def replace_in_file(fic, patt, subst):
     """ This function replaces the string value in the file for the new one
@@ -110,20 +103,25 @@ def replace_in_file(fic, patt, subst):
                         -> String
                         -> IO ()
     """
+    nfic = None
+    ofic = None
+    fich = None
     try:
-        fich, temp_fic = tempfile.mkstemp()
+        fich, temp_fic = mkstemp()
         nfic = open(temp_fic, 'w')
         ofic = open(fic)
         for line in ofic:
             nfic.write(line.replace(patt, subst))
         os.remove(fic)
-        shutil.move(temp_fic, fic)
+        move(temp_fic, fic)
     except OSError:
-        log.exception('Replace of patern %s by %s failed on file %s.', patt, subst, fic)
+        log.exception('Replace of patern %s by %s failed on file %s.',
+                      patt, subst, fic)
     finally:
         nfic.close()
         ofic.close()
         os.close(fich)
+
 
 def remove_existing_fics(list_of_fics):
     """ This function unlink a list of file given that they exist on filesystem
@@ -134,6 +132,7 @@ def remove_existing_fics(list_of_fics):
         if os.path.isfile:
             os.unlink(path)
 
+
 def remove_file_duplicates(fic):
     """ This function recreate a file while removing duplicates lines in it
         remove_file_duplicates :: FilePath
@@ -141,14 +140,14 @@ def remove_file_duplicates(fic):
     """
     if os.path.isfile(fic):
         try:
-            fich, tmp_fic = tempfile.mkstemp()
+            fich, tmp_fic = mkstemp()
             in_file = open(fic, 'r')
             out_file = open(tmp_fic, 'w')
-            seen = set() # fast O(1) amortized lookup
+            seen = set()  # fast O(1) amortized lookup
 
             for line in in_file:
                 if line in seen:
-                    continue # skip duplicate
+                    continue  # skip duplicate
                 seen.add(line)
                 out_file.write(line)
         except OSError:
@@ -159,13 +158,15 @@ def remove_file_duplicates(fic):
             os.close(fich)
 
         os.unlink(fic)
-        shutil.move(tmp_fic, fic)
+        move(tmp_fic, fic)
     else:
         log.error('File to be filtered does not exist : %s.', fic)
 
+
 def intersperse(iterable, delimiter):
     """ This function adds given string between elements of a list
-        http://stackoverflow.com/questions/5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
+    http://stackoverflow.com/questions
+        /5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
         intersperse :: [String]
                     -> String
                     -> [String]
@@ -175,6 +176,7 @@ def intersperse(iterable, delimiter):
     for x in it:
         yield delimiter
         yield x
+
 
 def format_to_regex(to_format):
     ret = ''
@@ -187,5 +189,5 @@ def format_to_regex(to_format):
 
     return ret
 
-#==========================================================================
-#0
+# -----------------------------------------------------------------------------
+#

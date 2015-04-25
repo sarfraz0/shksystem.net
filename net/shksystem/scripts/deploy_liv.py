@@ -1,45 +1,38 @@
 # -*- coding: utf-8 -*-
-#@(#)----------------------------------------------------------------------
-#@(#) OBJET            : Automatic rules based liv deployment
-#@(#)----------------------------------------------------------------------
-#@(#) AUTEUR           : Sarfraz Kapasi
-#@(#) DATE DE CREATION : 18.02.2015
-#@(#) LICENSE          : GPL-3
-#@(#)----------------------------------------------------------------------
 
-#==========================================================================
-#
-# WARNINGS
-# NONE
-#
-#==========================================================================
+"""
+    OBJET            : Automatic rules based liv deployment
+    AUTEUR           : Sarfraz Kapasi
+    DATE DE CREATION : 18.02.2015
+    LICENSE          : GPL-3
+"""
 
-#==========================================================================
+# -----------------------------------------------------------------------------
 # Imports
-#==========================================================================
+# -----------------------------------------------------------------------------
 
 import os
 import sys
 import csv
-import keyring
 import logging
-from sqlalchemy                 import create_engine, Column, Integer, String, Boolean, UniqueConstraint, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, \
+    UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm             import sessionmaker, relationship, backref
+from sqlalchemy.orm import sessionmaker, relationship, backref
 import paramiko
 from net.shksystem.common.error import FileNotFound
 
-#==========================================================================
+# -----------------------------------------------------------------------------
 # Environment/Static variables
-#==========================================================================
+# -----------------------------------------------------------------------------
 
 logger    = logging.getLogger(__name__)
 base_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 Base      = declarative_base()
 
-#==========================================================================
+# -----------------------------------------------------------------------------
 # Classes/Functions
-#==========================================================================
+# -----------------------------------------------------------------------------
 
 ## Data Sink
 
@@ -181,5 +174,5 @@ def run_deployment():
 
     logger.info('#### Done.')
 
-#==========================================================================
-#0
+# -----------------------------------------------------------------------------
+#

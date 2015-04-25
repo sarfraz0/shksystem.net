@@ -87,3 +87,6 @@
     + commit of the changelog
 * 0.1.6.11
     + added the rym project
+* 0.1.6.12
+    + moved flask content to web
+    + mostly pep8 syntax check
