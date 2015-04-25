@@ -14,7 +14,8 @@
 # standard
 import logging
 # installed
-from sqlalchemy import Column, Integer  # , String
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 # custom
 
@@ -27,12 +28,24 @@ Base = declarative_base()
 
 # -----------------------------------------------------------------------------
 # Classes and Functions
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------'
 
 
 class Issue(Base):
     __tablename__ = 'issues'
-    nudoss = Column(Integer)
+    nudoss = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    destcription Column(String)
+    step = Column(String, nullable=False)
+    closed = Column(Boolean, default=False)
+    owner = Column(String, nullable=False)
+    issuer = Column(String, nullable=False)
+
+
+class Workflow(Base):
+    __tablename__ = 'workflows'
+    nudoss = Column(Integer, primary_key=True)
+
 
 
 # -----------------------------------------------------------------------------

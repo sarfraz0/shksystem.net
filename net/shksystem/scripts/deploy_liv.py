@@ -18,7 +18,7 @@ import logging
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, \
     UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm import sessionmaker, relationship
 import paramiko
 from net.shksystem.common.error import FileNotFound
 
@@ -26,15 +26,15 @@ from net.shksystem.common.error import FileNotFound
 # Environment/Static variables
 # -----------------------------------------------------------------------------
 
-logger    = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 base_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-Base      = declarative_base()
+Base = declarative_base()
 
 # -----------------------------------------------------------------------------
 # Classes/Functions
 # -----------------------------------------------------------------------------
 
-## Data Sink
+# Data Sink
 
 class Component(Base):
     __tablename__  = "components"

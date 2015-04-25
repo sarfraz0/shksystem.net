@@ -90,3 +90,6 @@
 * 0.1.6.12
     + moved flask content to web
     + mostly pep8 syntax check
+* 0.1.6.13
+    + worked some on issues
+    + pep8 check for deploy_liv
