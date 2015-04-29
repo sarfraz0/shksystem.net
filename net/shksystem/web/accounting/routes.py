@@ -1,53 +1,42 @@
 # -*- coding: utf-8 -*-
-#@(#)----------------------------------------------------------------------
-#@(#) OBJET            : Flask routes
-#@(#)----------------------------------------------------------------------
-#@(#) AUTEUR           : Sarfraz Kapasi
-#@(#) DATE DE CREATION : 25.12.2014
-#@(#) LICENSE          : GPL-3
-#@(#)----------------------------------------------------------------------
 
-#==========================================================================
-#
-# WARNINGS
-# NONE
-#
-#==========================================================================
+""""
+    OBJET            : Flask routes
+    AUTEUR           : Sarfraz Kapasi
+    DATE DE CREATION : 25.12.2014
+    LICENSE          : GPL-3
+"""
 
-#==========================================================================
+# ------------------------------------------------------------------------------
 # Imports
-#==========================================================================
+# ------------------------------------------------------------------------------
 
-# Standard
-import os
-import sys
+# standard
 import logging
-# Environment defined
+# installed
 from net.shksystem.common.logic import Switch
 from passlib.hash import sha512_crypt
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
 from flaskext.csrf import csrf
-from validate_email import validate_email
-# User defined
-from net.shksystem.flask.accounting.models import db, User, Persona, MailSpool
+# custom
+from net.shksystem.web.accounting.models import db, User, Persona, MailSpool
 
-#==========================================================================
-# Environment/Parameters/Static variables
-#==========================================================================
+# ------------------------------------------------------------------------------
+# Globals
+# ------------------------------------------------------------------------------
 
 logger = logging.getLogger(__name__)
 
-# -- FLASK INIT
+# FLASK INIT
 # -------------------------------------------------------------------------
 app = Flask(__name__)
 
-
-# -- FLASK CSRF
+# FLASK CSRF
 # -------------------------------------------------------------------------
 csrf(app)
 
-# -- FLASK ALCHEMY
+# FLASK ALCHEMY
 # -------------------------------------------------------------------------
 db.init_app(app)
 
@@ -56,19 +45,22 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
 @login_manager.user_loader
 def load_user(nudoss):
     return User.query.get(int(nudoss))
 
-#==========================================================================
-# Classes/Functions
-#==========================================================================
+# ------------------------------------------------------------------------------
+# Classes and Functions
+# ------------------------------------------------------------------------------
 # NONE
-#==========================================================================
+# ------------------------------------------------------------------------------
 # Routes
-#==========================================================================
+# ------------------------------------------------------------------------------
 
 login_manager.login_view = 'login'
+
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     ret = render_template('login.html')
@@ -83,11 +75,13 @@ def login():
                 logger.info('And is valid.')
                 if sha512_crypt.verify(passwd, user.passwhash):
                     login_user(user)
-                    flash('Login sucess, welcome {0}'.format(current_user.pseudo,), 'success')
+                    flash('Login sucess, welcome {0}' \
+                          .format(current_user.pseudo,), 'success')
                     ret = redirect(url_for('index'))
             else:
                 logger.info('But is not valid')
-                ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
+                ret = redirect(url_for('validate', mode='VALID',
+                                       pseudo_id=user.nudoss))
     return ret
 
 @app.route('/register', methods=['POST'])
@@ -263,7 +257,5 @@ def manage_mail_spool(mode):
         ret = redirect(url_for('index'))
     return ret
 
-#==========================================================================
-# End sequence
-#==========================================================================
-#0
+# ------------------------------------------------------------------------------
+#

@@ -35,18 +35,27 @@ class Issue(Base):
     __tablename__ = 'issues'
     nudoss = Column(Integer, primary_key=True)
     title = Column(String, nullable=False)
-    destcription Column(String)
-    step = Column(String, nullable=False)
+    description = Column(String)
+    current_step = Column(String, nullable=False)
     closed = Column(Boolean, default=False)
     owner = Column(String, nullable=False)
     issuer = Column(String, nullable=False)
+    wkflow_id = Column(Integer, ForeignKey('workflows.nudoss'), nullable=False)
+
+
+class Step(Base):
+    __tablename__ = 'steps'
+    nudoss = Column(Integer, primary_key=True)
+    step = Column(String, nullable=False)
+    terminal = Column(Boolean, default=False)
+    previous_step = Column(Integer, nullable=False)
+    next_step = Column(Integer, nullable=False)
 
 
 class Workflow(Base):
     __tablename__ = 'workflows'
     nudoss = Column(Integer, primary_key=True)
-
-
+    issues = relationship('Issue', backref='workflow')
 
 # -----------------------------------------------------------------------------
 #

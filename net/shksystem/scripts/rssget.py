@@ -43,19 +43,11 @@ queue = Celery('tasks', broker='amqp://' + os.environ['CELERY_BROKER_HOST'])
 # -------------------------------------------------------------------------
 
 
-class Feed(Base):
-    __tablename__ = 'feeds'
-    nudoss = Column(Integer, primary_key=True)
-    url = Column(String, nullable=False)
-    rules = relationship('Rule', backref='feed')
-
-
 class Rule(Base):
     __tablename__ = 'rules'
     nudoss = Column(Integer, primary_key=True)
     title = Column(String, nullable=False)
     regex = Column(String, nullable=False)
-    feed_id = Column(Integer, ForeignKey('feeds.nudoss'), nullable=False)
     dlleds = relationship('DLLed', backref='rule')
 
 
@@ -68,6 +60,14 @@ class DLLed(Base):
 
 # PROCESSES
 # -------------------------------------------------------------------------
+
+
+def get_tv_dimension():
+    pass
+
+@queue.task
+def run_feed(cnf, rules, fson):
+
 
 
 @queue.task

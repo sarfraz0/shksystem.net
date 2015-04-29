@@ -93,3 +93,6 @@
 * 0.1.6.13
     + worked some on issues
     + pep8 check for deploy_liv
+* 0.1.6.14
+    + worked on issues and accounting mostly on syntax check
+    + began modifying rssget to take larger number of flux and be more generic
