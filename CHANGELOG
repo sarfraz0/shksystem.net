@@ -96,3 +96,8 @@
 * 0.1.6.14
     + worked on issues and accounting mostly on syntax check
     + began modifying rssget to take larger number of flux and be more generic
+* 0.1.6.15
+    + accounting status unknown but runs
+    + rewrote rssget after eztv break; new name is feed
+    + added unified interface for flux getters
+    + added specific classes for differents temas

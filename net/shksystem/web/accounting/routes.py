@@ -16,8 +16,10 @@ import logging
 # installed
 from net.shksystem.common.logic import Switch
 from passlib.hash import sha512_crypt
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
+from flask import Flask, render_template, request, redirect, url_for, session, \
+    flash
+from flask.ext.login import LoginManager, login_required, login_user, \
+    logout_user, current_user
 from flaskext.csrf import csrf
 # custom
 from net.shksystem.web.accounting.models import db, User, Persona, MailSpool
@@ -95,36 +97,31 @@ def register():
     email  = request.form['email']
     logger.debug('Form for new user is pseudo (%s), passw1 (%s), passw2 (%s) and email (%s).', pseudo, passw1, passw2, email)
 
-    if validate_email(email):
-        user = User.query.filter_by(pseudo=pseudo).first()
-        if user is None:
-            logger.info('User does not exist, creating it.')
-            if passw1 == passw2:
-                logger.debug('Creating new user...')
-                newusr = User(pseudo, passw1, False)
-                db.session.add(newusr)
-                db.session.flush()
-                newusr_id = User.query.filter_by(pseudo=pseudo).first().nudoss
-                logger.debug('Flushing new user and getting back its id : %s', newusr_id)
-                newusr_persona = Persona(newusr_id, email)
-                newusr_persona.set_optionnals(request.form)
-                newusr_persona.gen_validation_request()
-                db.session.add(newusr_persona)
-                db.session.commit()
-                ret = redirect(url_for('validate', mode='VALID', pseudo_id=newusr_id))
-            else:
-                msg = 'Passwords do not match.'
-                logger.info(msg)
-                flash(msg, 'error')
-        elif not user.persona.valid:
-            logger.info('User does exists but needs validation.')
-            ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
+    user = User.query.filter_by(pseudo=pseudo).first()
+    if user is None:
+        logger.info('User does not exist, creating it.')
+        if passw1 == passw2:
+            logger.debug('Creating new user...')
+            newusr = User(pseudo, passw1, False)
+            db.session.add(newusr)
+            db.session.flush()
+            newusr_id = User.query.filter_by(pseudo=pseudo).first().nudoss
+            logger.debug('Flushing new user and getting back its id : %s', newusr_id)
+            newusr_persona = Persona(newusr_id, email)
+            newusr_persona.set_optionnals(request.form)
+            newusr_persona.gen_validation_request()
+            db.session.add(newusr_persona)
+            db.session.commit()
+            ret = redirect(url_for('validate', mode='VALID', pseudo_id=newusr_id))
         else:
-            msg = 'User already exist.'
+            msg = 'Passwords do not match.'
             logger.info(msg)
             flash(msg, 'error')
+    elif not user.persona.valid:
+        logger.info('User does exists but needs validation.')
+        ret = redirect(url_for('validate', mode='VALID', pseudo_id=user.nudoss))
     else:
-        msg = 'Email is not valid.'
+        msg = 'User already exist.'
         logger.info(msg)
         flash(msg, 'error')
 

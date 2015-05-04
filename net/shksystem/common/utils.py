@@ -14,7 +14,7 @@
 # standard
 import os
 from datetime import datetime
-from logging import getLogger, StreamHandler
+from logging import getLogger, Formatter, StreamHandler
 from logging.handlers import RotatingFileHandler
 from subprocess import call
 from shutil import move
@@ -41,9 +41,8 @@ def init_logger(log_path, log_level):
     """
     loggo = getLogger()
     # setting formatter
-    formater = logging \
-        .Formatter("%(asctime)s %(name)s %(levelname)s - %(message)s",
-                   "%d-%m %H:%M")
+    formater = Formatter("%(asctime)s %(name)s %(levelname)s - %(message)s",
+                         "%d-%m %H:%M")
     # configuring rotation
     rotate_file_handler = RotatingFileHandler(log_path,
                                               maxBytes=5000000, backupCount=5)

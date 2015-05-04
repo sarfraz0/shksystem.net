@@ -1,46 +1,39 @@
 # -*- coding: utf-8 -*-
-#@(#)----------------------------------------------------------------------
-#@(#) OBJET            : Flask data manipulation
-#@(#)----------------------------------------------------------------------
-#@(#) AUTEUR           : Sarfraz Kapasi
-#@(#) DATE DE CREATION : 15.01.2015
-#@(#) LICENSE          : GPL-3
-#@(#)----------------------------------------------------------------------
 
-#==========================================================================
-#
-# WARNINGS
-# NONE
-#
-#==========================================================================
+""""
+    OBJET            : Flask data manipulation
+    AUTEUR           : Sarfraz Kapasi
+    DATE DE CREATION : 15.01.2015
+    LICENSE          : GPL-3
+"""
 
-#==========================================================================
+# ------------------------------------------------------------------------------
 # Imports
-#==========================================================================
+# ------------------------------------------------------------------------------
 
-#standard
+# standard
 import uuid
-#installed
+import random
+# installed
 import keyring
 from passlib.hash import sha512_crypt
 from flask import render_template
 from flask.ext.sqlalchemy import SQLAlchemy
-#custom
-from net.shksystem.common.utils import get_current_timestamp, get_random_elem
+# custom
+from net.shksystem.common.utils import get_current_timestamp
 from net.shksystem.common.send_mail import SendMail
 
-#==========================================================================
-# Environment/Static variables
-#==========================================================================
+# ------------------------------------------------------------------------------
+# Globals
+# ------------------------------------------------------------------------------
 
 db = SQLAlchemy()
 
-#==========================================================================
-# Classes/Functions
-#==========================================================================
+# ------------------------------------------------------------------------------
+# Classes and Functions
+# ------------------------------------------------------------------------------
 
-# -- FLASK MODELS
-# -------------------------------------------------------------------------
+
 class User(db.Model):
     """Flask-Login User class"""
     __tablename__ = "users"
@@ -48,9 +41,11 @@ class User(db.Model):
     pseudo = db.Column(db.String, nullable=False, unique=True)
     passwhash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False)
-    persona  = db.relationship('Persona', uselist=False, backref='user')
-    loans = db.relationship('Debt', backref='creditor', foreign_keys='Debt.creditor_id')
-    debts = db.relationship('Debt', backref='debtor', foreign_keys='Debt.debtor_id')
+    persona = db.relationship('Persona', uselist=False, backref='user')
+    loans = db.relationship('Debt', backref='creditor',
+                            foreign_keys='Debt.creditor_id')
+    debts = db.relationship('Debt', backref='debtor',
+                            foreign_keys='Debt.debtor_id')
 
     def __init__(self, pseudo, passw, is_admin):
         self.pseudo = pseudo
@@ -69,12 +64,12 @@ class User(db.Model):
     def get_id(self):
         return str(self.nudoss)
 
-# -- APP MODELS
-# -------------------------------------------------------------------------
+
 class Persona(db.Model):
-    __tablename__  = 'personas'
+    __tablename__ = 'personas'
     nudoss = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.nudoss'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.nudoss'),
+                        nullable=False)
     name = db.Column(db.String)
     lastname = db.Column(db.String)
     email = db.Column(db.String, nullable=False)
@@ -103,12 +98,15 @@ class Persona(db.Model):
 
     def gen_validation_request(self):
         token = str(uuid.uuid4())
-        minfos = get_random_elem(MailSpool.query.all())
-        html = render_template('user_registration_mail.html', validation_token=token, iud=self.user_id)
-        #mailer = SendMail(minfos.mail_server, minfos.mail_port, minfos.mail_username)
-        #mailer.send_mail(minfos.full_sender, '', '', [self.email])
+        m = random.choice((MailSpool.query.all()))
+        html = render_template('user_registration_mail.html',
+                               validation_token=token)
+        mailer = SendMail(m.mail_server, m.mail_port, m.mail_username)
+        mailer.send_mail(m.full_sender, 'Account validation token', html,
+                         [self.email], htmlbody=True)
         self.validation_token = token
         return token
+
 
 class MailSpool(db.Model):
     __tablename__ = 'mail_spool'
@@ -124,13 +122,16 @@ class MailSpool(db.Model):
         self.full_sender = full_sender
         keyring.set_password(mail_server, mail_username, mail_passwd)
 
+
 class Debt(db.Model):
     __tablename__ = 'debts'
     nudoss = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.Float, nullable=False)
     paid = db.Column(db.Float, nullable=False)
-    creditor_id= db.Column(db.Integer, db.ForeignKey('users.nudoss'), nullable=False)
-    debtor_id= db.Column(db.Integer, db.ForeignKey('users.nudoss'), nullable=False)
+    creditor_id = db.Column(db.Integer, db.ForeignKey('users.nudoss'),
+                            nullable=False)
+    debtor_id = db.Column(db.Integer, db.ForeignKey('users.nudoss'),
+                          nullable=False)
 
     def __init__(self, value, creditor, debtor, paid):
         self.value = value
@@ -138,5 +139,5 @@ class Debt(db.Model):
         self.creditor_id = creditor
         self.debtor_id = debtor
 
-#==========================================================================
-#0
+# ------------------------------------------------------------------------------
+#
