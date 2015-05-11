@@ -101,3 +101,5 @@
     + rewrote rssget after eztv break; new name is feed
     + added unified interface for flux getters
     + added specific classes for differents temas
+* 0.1.6.16
+    + finished feed.py but needs test coverage and more edge cases

@@ -13,6 +13,7 @@
 
 # standard
 import os
+import re
 from datetime import datetime
 from logging import getLogger, Formatter, StreamHandler
 from logging.handlers import RotatingFileHandler
@@ -178,6 +179,8 @@ def intersperse(iterable, delimiter):
 
 
 def format_to_regex(to_format):
+    """
+    """
     ret = ''
     ret = to_format.lower().strip()
     for c in ['-', '_']:
