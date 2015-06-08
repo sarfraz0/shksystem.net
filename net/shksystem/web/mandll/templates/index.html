@@ -37,8 +37,7 @@
 {% endwith %}
 
 <ul class="tabs" data-tab>
-  <li class="tab-title active"><a href="#panel1">RSS</a></li>
-  <li class="tab-title"><a href="#panel2">RANGES</a></li>
+  <li class="tab-title active"><a href="#panel1">Flux</a></li>
 </ul>
 
 <div id="add_sink" class="reveal-modal" data-reveal aria-labelledby="Add a sink" aria-hidden="true" role="dialog">
@@ -109,37 +108,16 @@
 	</tr>
       </thead>
       <tbody>
-	{% for rss in rsss %}
+	{% for feed in feeds %}
 	<tr>
-	  <td>{{ rss[0] }}</td>
-	  <td>{{ rss[1] }}</td>
+	  <td>{{ feed.title }}</td>
+	  <td>{{ feed.regex }}</td>
 	  <td>Actions</td>
 	</tr>
 	{% endfor %}
       </tbody>
     </table>
   </div>
-  <div class="content" id="panel2">
-    <table>
-      <caption>Directories rules</caption>
-      <thead>
-	<tr>
-	  <th>Name</th>
-	  <th>Destination</th>
-	  <th>Actions</th>
-	</tr>
-      </thead>
-      <tbody>
-	{% for range in ranges %}
-	<tr>
-	  <td>{{ range[0] }}</td>
-	  <td>{{ range[1] }}</td>
-	  <td>Actions</td>
-	</tr>
-	{% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
 
 {% endblock %}
+

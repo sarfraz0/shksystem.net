@@ -1,19 +1,23 @@
 {% extends 'base.html' %}
-{% block title %}Home{% endblock %}
-{% block css %}{{ url_for('static', filename='css/index.css') }}{% endblock %}
+{% block title %}Login{% endblock %}
+{% block css %}{{ url_for('static', filename='css/login.css') }}{% endblock %}
 {% block content %}
 
-<nav class="top-bar" data-topbar role="navigation">
+<nav class="top-bar" data-topbar>
   <section class="top-bar-section">
-    <!-- Right Nav Section -->
-    <!-- Left Nav Section -->
-    <ul class="left">
+    <ul class="right">
       <li>
-	<a href={{ url_for('index') }}>{{ config['APP_NAME']  }}
+	<a href="#" data-reveal-id="register" class="button tiny secondary">Register
 	</a>
       </li>
       <li>
-	<a href="#" data-reveal-id="add_sink" class="button">Add a sink
+	<a href="#" data-options="align:left" data-dropdown="signin" class="button tiny success">Log in
+	</a>
+      </li>
+    </ul>
+    <ul class="left">
+      <li>
+	<a href="{{ url_for('index') }}">{{ config['APP_NAME'] }}
 	</a>
       </li>
     </ul>
@@ -36,12 +40,9 @@
 {% endif %}
 {% endwith %}
 
-<ul class="tabs" data-tab>
-  <li class="tab-title active"><a href="#panel1">Flux</a></li>
-</ul>
-
-<div id="add_sink" class="reveal-modal" data-reveal aria-labelledby="Add a sink" aria-hidden="true" role="dialog">
-  <form action="{{ url_for('index') }}" method="post">
+<div id="register" class="reveal-modal" data-reveal>
+  <form action="{{ url_for('register') }}" method="post">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
     <div class="row">
       <div class="large-12 columns">
@@ -92,32 +93,27 @@
     </div>
 
   </form>
-
-  <a class="close-reveal-modal" aria-label="Close">&#215;</a>
 </div>
 
-<div class="tabs-content">
-  <div class="content active" id="panel1">
-    <table>
-      <caption>RSS flux</caption>
-      <thead>
-	<tr>
-	  <th>Name</th>
-	  <th>Flux</th>
-	  <th>Actions</th>
-	</tr>
-      </thead>
-      <tbody>
-	{% for feed in feeds %}
-	<tr>
-	  <td>{{ feed.title }}</td>
-	  <td>{{ feed.regex }}</td>
-	  <td>Actions</td>
-	</tr>
-	{% endfor %}
-      </tbody>
-    </table>
-  </div>
+<div id="signin" class="f-dropdown small content" data-dropdown-content="true">
+  <h5>Log In:
+  </h5>
+  <form id="top-nav-login" action="{{ url_for('login') }}" method="post">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="row">
+      <label>Pseudonym
+      </label>
+      <input type="text" name="pseudo" required>
+    </div>
+    <div class="row">
+      <label>Password
+      </label>
+      <input type="password" name="password" required>
+    </div>
+    <div class="row">
+      <input type="submit" value="Log in" class="button round tiny">
+    </div>
+  </form>
+</div>
 
 {% endblock %}
-

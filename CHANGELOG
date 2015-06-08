@@ -103,3 +103,6 @@
     + added specific classes for differents temas
 * 0.1.6.16
     + finished feed.py but needs test coverage and more edge cases
+* 0.1.7.0
+    + reworked all webapps
+    + only stable projects are accounting and feed
