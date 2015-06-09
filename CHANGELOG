@@ -106,3 +106,5 @@
 * 0.1.7.0
     + reworked all webapps
     + only stable projects are accounting and feed
+* 0.1.7.1
+    + changed users forms for wtf forms

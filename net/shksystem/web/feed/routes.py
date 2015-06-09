@@ -15,14 +15,15 @@
 import logging
 # installed
 from passlib.hash import sha512_crypt
-from flask import Flask, render_template, request, redirect, url_for, session, \
-    flash
+from flask import Flask, render_template, request, redirect, url_for, \
+    session, flash
 from flask.ext.login import LoginManager, login_required, login_user, \
     logout_user, current_user
 # custom
 from net.shksystem.common.logic import Switch
 from net.shksystem.web.feed.models import db, User, Feed, Rule, DLLed
-from net.shksystem.web.feed.forms import LoginForm
+from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
+    ModifyUser
 
 # ------------------------------------------------------------------------------
 # Globals
@@ -90,28 +91,46 @@ def admin():
 def manage_users(mode):
     action_list = ['REMOVE', 'MODIFY', 'ADD']
     if current_user.is_admin:
+
+        choices = [(a.k, a.pseudo) for a in User.query.all()]
+        remove_form = RemoveUser()
+        add_form = AddUser()
+        modify_form = ModifyUser()
+        for form in [remove_form, modify_form]:
+            form.pseudo.choices = choices
+
         if request.method == 'POST':
             ret = redirect(url_for('admin'))
             for case in Switch(mode):
                 if case('REMOVE'):
-                    db.session.delete(User.query.get(int(request.form['pseudo'])))
-                    db.session.commit()
-                    break
+                    if remove_form.validate_on_submit():
+                        pseudo = int(request.form['pseudo'])
+                        db.session.delete(User.query.get(pseudo))
+                        db.session.commit()
+                        break
                 if case('MODIFY'):
-                    user_obj = User.query.get(int(request.form['pseudo']))
-                    user_obj.password = sha512_crypt.encrypt(request.form['password'])
-                    user_obj.is_admin = ('is_admin' in request.form)
-                    db.session.commit()
-                    break
+                    if modify_form.validate_on_submit():
+                        user_obj = User.query.get(int(request.form['pseudo']))
+                        if 'password' in request.form:
+                            passwd = request.form['password']
+                            user_obj.password = sha512_crypt.encrypt(passwd)
+                        user_obj.is_admin = request.form['is_admin']
+                        db.session.commit()
+                        break
                 if case('ADD'):
-                    isadm = ('is_admin' in request.form)
-                    new_user = User(request.form['pseudo'], request.form['password'], isadm)
-                    db.session.add(new_user)
-                    db.session.commit()
-                    break
+                    if add_form.validate_on_submit():
+                        new_user = User(request.form['pseudo'],
+                                        request.form['password'],
+                                        request.form['is_admin'])
+                        db.session.add(new_user)
+                        db.session.commit()
+                        break
         else:
             if mode in action_list:
-                ret = render_template('users.html', mode=mode, users=User.query.all())
+                ret = render_template('users.html', mode=mode,
+                                      add_form=add_form,
+                                      modify_form=modify_form,
+                                      remove_form=remove_form)
             else:
                 ret = redirect(url_for('admin'))
     else:
