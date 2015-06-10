@@ -47,6 +47,8 @@ def load_user(k):
 # Routes
 # ------------------------------------------------------------------------------
 
+### Default
+# -----------------------------------------------------------------------------
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -107,23 +109,170 @@ def manage_users(mode):
                         pseudo = int(request.form['pseudo'])
                         db.session.delete(User.query.get(pseudo))
                         db.session.commit()
+                        flash('User deleted!', 'success')
                         break
                 if case('MODIFY'):
                     if modify_form.validate_on_submit():
                         user_obj = User.query.get(int(request.form['pseudo']))
                         if 'password' in request.form:
-                            passwd = request.form['password']
-                            user_obj.password = sha512_crypt.encrypt(passwd)
-                        user_obj.is_admin = request.form['is_admin']
+                            user_obj.passwhash = sha512_crypt \
+                                    .encrypt(request.form['password'])
+                        user_obj.is_admin = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
                         db.session.commit()
+                        flash('User modified!', 'success')
                         break
                 if case('ADD'):
                     if add_form.validate_on_submit():
+                        isadm = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
                         new_user = User(request.form['pseudo'],
-                                        request.form['password'],
-                                        request.form['is_admin'])
+                                        request.form['password'], isadm)
                         db.session.add(new_user)
                         db.session.commit()
+                        flash('User added!', 'success')
+                        break
+        else:
+            if mode in action_list:
+                ret = render_template('users.html', mode=mode,
+                                      add_form=add_form,
+                                      modify_form=modify_form,
+                                      remove_form=remove_form)
+            else:
+                ret = redirect(url_for('admin'))
+    else:
+        ret = redirect(url_for('index'))
+    return ret
+
+### API
+# -----------------------------------------------------------------------------
+
+@app.route('/api/v1/run/feed/<feed_name>', methods=['GET'])
+def run_feed(feed_name):
+    pass
+
+@app.route('/api/v1/run/feeds', methods=['GET'])
+def run_feeds():
+    pass
+
+# -----------------------------------------------------------------------------
+
+### Custom
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+@app.route('/custom/data', methods=['GET'])
+@login_required
+def manage_feeds():
+    ret = render_template('admin.html') if current_user.is_admin else \
+            redirect(url_for('index'))
+    return ret
+
+@app.route('/custom/data/manage_feeds/<mode>', methods=['GET', 'POST'])
+@login_required
+def manage_users(mode):
+    action_list = ['REMOVE', 'MODIFY', 'ADD']
+    if current_user.is_admin:
+
+        choices = [(a.k, a.pseudo) for a in User.query.all()]
+        remove_form = RemoveUser()
+        add_form = AddUser()
+        modify_form = ModifyUser()
+        for form in [remove_form, modify_form]:
+            form.pseudo.choices = choices
+
+        if request.method == 'POST':
+            ret = redirect(url_for('admin'))
+            for case in Switch(mode):
+                if case('REMOVE'):
+                    if remove_form.validate_on_submit():
+                        pseudo = int(request.form['pseudo'])
+                        db.session.delete(User.query.get(pseudo))
+                        db.session.commit()
+                        flash('User deleted!', 'success')
+                        break
+                if case('MODIFY'):
+                    if modify_form.validate_on_submit():
+                        user_obj = User.query.get(int(request.form['pseudo']))
+                        if 'password' in request.form:
+                            user_obj.passwhash = sha512_crypt \
+                                    .encrypt(request.form['password'])
+                        user_obj.is_admin = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
+                        db.session.commit()
+                        flash('User modified!', 'success')
+                        break
+                if case('ADD'):
+                    if add_form.validate_on_submit():
+                        isadm = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
+                        new_user = User(request.form['pseudo'],
+                                        request.form['password'], isadm)
+                        db.session.add(new_user)
+                        db.session.commit()
+                        flash('User added!', 'success')
+                        break
+        else:
+            if mode in action_list:
+                ret = render_template('users.html', mode=mode,
+                                      add_form=add_form,
+                                      modify_form=modify_form,
+                                      remove_form=remove_form)
+            else:
+                ret = redirect(url_for('admin'))
+    else:
+        ret = redirect(url_for('index'))
+    return ret
+
+@app.route('/custom/data/manage_rules/<mode>', methods=['GET', 'POST'])
+@login_required
+def manage_users(mode):
+    action_list = ['REMOVE', 'MODIFY', 'ADD']
+    if current_user.is_admin:
+
+        choices = [(a.k, a.pseudo) for a in User.query.all()]
+        remove_form = RemoveUser()
+        add_form = AddUser()
+        modify_form = ModifyUser()
+        for form in [remove_form, modify_form]:
+            form.pseudo.choices = choices
+
+        if request.method == 'POST':
+            ret = redirect(url_for('admin'))
+            for case in Switch(mode):
+                if case('REMOVE'):
+                    if remove_form.validate_on_submit():
+                        pseudo = int(request.form['pseudo'])
+                        db.session.delete(User.query.get(pseudo))
+                        db.session.commit()
+                        flash('User deleted!', 'success')
+                        break
+                if case('MODIFY'):
+                    if modify_form.validate_on_submit():
+                        user_obj = User.query.get(int(request.form['pseudo']))
+                        if 'password' in request.form:
+                            user_obj.passwhash = sha512_crypt \
+                                    .encrypt(request.form['password'])
+                        user_obj.is_admin = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
+                        db.session.commit()
+                        flash('User modified!', 'success')
+                        break
+                if case('ADD'):
+                    if add_form.validate_on_submit():
+                        isadm = (('is_admin' in request.form) and \
+                                (request.form['is_admin'] == 'y'))
+                        new_user = User(request.form['pseudo'],
+                                        request.form['password'], isadm)
+                        db.session.add(new_user)
+                        db.session.commit()
+                        flash('User added!', 'success')
                         break
         else:
             if mode in action_list:
@@ -138,77 +287,22 @@ def manage_users(mode):
     return ret
 
 
-### Feed
-# -----------------------------------------------------------------------------
 
-## Feed views
 
-@app.route('/view/feed/add', methods=['GET', 'POST'])
-def add_feed_form():
-    pass
 
-@app.route('/view/feed/delete', methods=['GET', 'POST'])
-def delete_feed_form():
-    pass
 
-## Feed API
 
-@app.route('/api/feed', methods=['GET'])
-def get_feeds():
-    """ Process all feed to get new torrents and returns torrents added """
-    pass
 
-@app.route('/api/feed/<feed_name>', methods=['GET'])
-def get_feed(feed_name):
-    """ Process given feed to get new torrents and returns torrents added"""
-    pass
 
-@app.route('/api/feed', methods=['POST'])
-def add_feed():
-    """ Add a new feed """
-    pass
 
-@app.route('/api/feed/<feed_name>', methods=['DELETE'])
-def delete_feed(feed_name):
-    """ Delete given feed """
-    pass
 
-# -----------------------------------------------------------------------------
 
-### Rule
-# -----------------------------------------------------------------------------
 
-## Rule views
 
-@app.route('/view/rule/add', methods=['GET', 'POST'])
-def add_rule_form():
-    pass
 
-@app.route('/view/rule/delete', methods=['GET', 'POST'])
-def delete_rule_form():
-    pass
 
-## Rule API
 
-@app.route('/api/rule', methods=['GET'])
-def get_rules():
-    """ Process all rule to get new torrents and returns torrents added """
-    pass
 
-@app.route('/api/rule/<rule_name>', methods=['GET'])
-def get_rule(rule_name):
-    """ Process given rule to get new torrents and returns torrents added"""
-    pass
-
-@app.route('/api/rule', methods=['POST'])
-def add_rule():
-    """ Add a new rule """
-    pass
-
-@app.route('/api/rule/<rule_name>', methods=['DELETE'])
-def delete_rule(rule_name):
-    """ Delete given rule """
-    pass
 
 # -----------------------------------------------------------------------------
 

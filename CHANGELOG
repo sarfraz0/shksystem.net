@@ -108,3 +108,6 @@
     + only stable projects are accounting and feed
 * 0.1.7.1
     + changed users forms for wtf forms
+* 0.1.7.2
+    + working on adding feeds views
+    + fixed users views

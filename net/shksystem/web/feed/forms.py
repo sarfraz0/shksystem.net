@@ -39,14 +39,41 @@ class RemoveUser(Form):
 class ModifyUser(Form):
     pseudo = SelectField('Pseudonnym', coerce=int)
     password = PasswordField('New Password')
-    is_admin = BooleanField('Give admin rights', default=False)
+    is_admin = BooleanField('Give/Keep admin rights')
 
 
 class AddUser(Form):
     pseudo = TextField('Pseudonnym', validators=[InputRequired()])
     password = PasswordField('New Password', validators=[InputRequired()])
-    is_admin = BooleanField('Give admin rights', default=False)
+    is_admin = BooleanField('Give admin rights')
 
+
+class AddFeed(Form):
+    name = TextField('Name', validators=[InputRequired()])
+    regex = TextField('Regex', validators=[InputRequired()])
+    strike_url = TextField('Strike API url', validators=[InputRequired()])
+    kickass_url = TextField('Kickass feed url', validators=[InputRequired()])
+    is_active = BooleanField('Active rule', default=True)
+    has_episodes = BooleanField('Has episodes')
+    has_seasons = BooleanField('Has seasons')
+
+
+class ModifyFeed(Form):
+    name = SelectField('Name', coerce=int)
+    regex = TextField('Regex')
+    strike_url = TextField('New strike API url')
+    kickass_url = TextField('New kickass feed url')
+    is_active = BooleanField('Active rule')
+    has_episodes = BooleanField('Has episodes')
+    has_seasons = BooleanField('Has seasons')
+
+
+class AddRule(Form):
+    pass
+
+
+class ModifyRule(Form):
+    pass
 
 # ------------------------------------------------------------------------------
 #

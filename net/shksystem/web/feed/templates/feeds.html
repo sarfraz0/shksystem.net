@@ -1,15 +1,15 @@
 {% extends 'menu.html' %}
-{% block title %}Users Management{% endblock %}
-{% block css %}{{ url_for('static', filename='css/users.css') }}{% endblock %}
+{% block title %}Feeds Management{% endblock %}
+{% block css %}{{ url_for('static', filename='css/feeds.css') }}{% endblock %}
 {% block content %}
 
 {% if mode == 'MODIFY' %}
-<form action="{{ url_for('manage_users', mode='MODIFY') }}" method="post">
+<form action="{{ url_for('manage_feeds', mode='MODIFY') }}" method="post">
     {{ modify_form.hidden_tag() }}
     <div class="row">
         <div class="large-12 columns">
             <fieldset>
-                <legend>Modify User</legend>
+                <legend>Modify Feed</legend>
 
                 <div class="row">
                     <div class="large-12 columns">
@@ -44,12 +44,12 @@
 {% endif %}
 
 {% if mode == 'ADD' %}
-<form action="{{ url_for('manage_users', mode='ADD') }}" method="post">
+<form action="{{ url_for('manage_feeds', mode='ADD') }}" method="post">
     {{ add_form.hidden_tag() }}
     <div class="row">
         <div class="large-12 columns">
             <fieldset>
-                <legend>Add User</legend>
+                <legend>Add Feed</legend>
 
                 <div class="row">
                     <div class="large-12 columns">
@@ -74,33 +74,6 @@
                 <div class="row">
                     <div class="large-3 large-offset-9 columns">
                         <input type="submit" value="Add User" class="button">
-                    </div>
-                </div>
-
-            </fieldset>
-        </div>
-    </div>
-</form>
-{% endif %}
-
-{% if mode == 'REMOVE' %}
-<form action="{{ url_for('manage_users', mode='REMOVE') }}" method="post">
-    {{ remove_form.hidden_tag() }}
-    <div class="row">
-        <div class="large-12 columns">
-            <fieldset>
-                <legend>Remove User</legend>
-
-                <div class="row">
-                    <div class="large-12 columns">
-                        {{ remove_form.pseudo.label }}
-                        {{ remove_form.pseudo }}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="large-12 columns">
-                        <input type="submit" value="Remove User" class="button expand">
                     </div>
                 </div>
 

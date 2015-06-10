@@ -1,0 +1,31 @@
+{% extends 'menu.html' %}
+{% block title %}Admin{% endblock %}
+{% block css %}{{ url_for('static', filename='css/data.css') }}{% endblock %}
+{% block content %}
+
+<div class="row">
+    <div class="large-12 columns">
+        <table>
+            <caption>Feeds</caption>
+            <tr>
+                <td><a href={{ url_for('manage_feeds', mode='ADD')}}>Add</a></td>
+                <td><a href={{ url_for('manage_feeds', mode='MODIFY')}}>Modify</a></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="large-12 columns">
+        <table>
+            <caption>Rules</caption>
+            <tr>
+                <td><a href={{ url_for('manage_rules', mode='ADD')}}>Add</a></td>
+                <td><a href={{ url_for('manage_rules', mode='MODIFY')}}>Modify</a></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}
