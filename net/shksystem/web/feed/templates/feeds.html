@@ -13,27 +13,51 @@
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ modify_form.pseudo.label }}
-                        {{ modify_form.pseudo }}
+                        {{ modify_form.name.label }}
+                        {{ modify_form.name }}
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ modify_form.password.label }}
-                        {{ modify_form.password }}
+                        {{ modify_form.regex.label }}
+                        {{ modify_form.regex }}
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ add_form.is_admin }}{{ add_form.is_admin.label }}
+                        {{ modify_form.strike_url.label }}
+                        {{ modify_form.strike_url }}
                     </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.kickass_url.label }}
+                        {{ modify_form.kickass_url }}
+                    </div>
+                </div>
+
+                <div class="row">
+
+                    <div class="large-4 columns">
+                        {{ modify_form.is_active }}{{ modify_form.is_active.label }}
+                    </div>
+
+                    <div class="large-4 columns">
+                        {{ modify_form.has_episodes }}{{ modify_form.has_episodes.label }}
+                    </div>
+
+                    <div class="large-4 columns">
+                        {{ modify_form.has_seasons }}{{ modify_form.has_seasons.label }}
+                    </div>
+
                 </div>
 
                 <div class="row">
                     <div class="large-3 large-offset-9 columns">
-                        <input type="submit" value="Update User" class="button">
+                        <input type="submit" value="Update Feed" class="button">
                     </div>
                 </div>
 
@@ -53,27 +77,51 @@
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ add_form.pseudo.label }}
-                        {{ add_form.pseudo(autofocus=true, required=true) }}
-                 </div>
+                        {{ add_form.name.label }}
+                        {{ add_form.name(autofocus=true, required=true) }}
+                    </div>
                 </div>
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ add_form.password.label }}
-                        {{ add_form.password(autofocus=true, required=true) }}
-                   </div>
+                        {{ add_form.regex.label }}
+                        {{ add_form.regex(autofocus=true, required=true) }}
+                    </div>
                 </div>
 
                 <div class="row">
                     <div class="large-12 columns">
-                        {{ add_form.is_admin }}{{ add_form.is_admin.label }}
-                  </div>
+                        {{ add_form.strike_url.label }}
+                        {{ add_form.strike_url(autofocus=true, required=true) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.kickass_url.label }}
+                        {{ add_form.kickass_url(autofocus=true, required=true) }}
+                    </div>
+                </div>
+
+                <div class="row">
+
+                    <div class="large-4 columns">
+                        {{ add_form.is_active }}{{ add_form.is_active.label }}
+                    </div>
+
+                    <div class="large-4 columns">
+                        {{ add_form.has_episodes }}{{ add_form.has_episodes.label }}
+                    </div>
+
+                    <div class="large-4 columns">
+                        {{ add_form.has_seasons }}{{ add_form.has_seasons.label }}
+                    </div>
+
                 </div>
 
                 <div class="row">
                     <div class="large-3 large-offset-9 columns">
-                        <input type="submit" value="Add User" class="button">
+                        <input type="submit" value="Add Feed" class="button">
                     </div>
                 </div>
 

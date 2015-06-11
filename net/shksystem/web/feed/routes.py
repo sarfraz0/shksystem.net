@@ -169,123 +169,64 @@ def run_feeds():
 
 @app.route('/custom/data', methods=['GET'])
 @login_required
-def manage_feeds():
-    ret = render_template('admin.html') if current_user.is_admin else \
-            redirect(url_for('index'))
+def data():
+    ret = render_template('data.html')
     return ret
 
 @app.route('/custom/data/manage_feeds/<mode>', methods=['GET', 'POST'])
 @login_required
-def manage_users(mode):
-    action_list = ['REMOVE', 'MODIFY', 'ADD']
-    if current_user.is_admin:
+def manage_feeds(mode):
+    action_list = ['MODIFY', 'ADD']
 
-        choices = [(a.k, a.pseudo) for a in User.query.all()]
-        remove_form = RemoveUser()
-        add_form = AddUser()
-        modify_form = ModifyUser()
-        for form in [remove_form, modify_form]:
-            form.pseudo.choices = choices
+    choices = [(a.k, a.name) for a in Feed.query.all()]
+    add_form = AddFeed()
+    modify_form = ModifyFeed()
+    modify_form.name.choices = choices
 
-        if request.method == 'POST':
-            ret = redirect(url_for('admin'))
-            for case in Switch(mode):
-                if case('REMOVE'):
-                    if remove_form.validate_on_submit():
-                        pseudo = int(request.form['pseudo'])
-                        db.session.delete(User.query.get(pseudo))
-                        db.session.commit()
-                        flash('User deleted!', 'success')
-                        break
-                if case('MODIFY'):
-                    if modify_form.validate_on_submit():
-                        user_obj = User.query.get(int(request.form['pseudo']))
-                        if 'password' in request.form:
-                            user_obj.passwhash = sha512_crypt \
-                                    .encrypt(request.form['password'])
-                        user_obj.is_admin = (('is_admin' in request.form) and \
-                                (request.form['is_admin'] == 'y'))
-                        db.session.commit()
-                        flash('User modified!', 'success')
-                        break
-                if case('ADD'):
-                    if add_form.validate_on_submit():
-                        isadm = (('is_admin' in request.form) and \
-                                (request.form['is_admin'] == 'y'))
-                        new_user = User(request.form['pseudo'],
-                                        request.form['password'], isadm)
-                        db.session.add(new_user)
-                        db.session.commit()
-                        flash('User added!', 'success')
-                        break
-        else:
-            if mode in action_list:
-                ret = render_template('users.html', mode=mode,
-                                      add_form=add_form,
-                                      modify_form=modify_form,
-                                      remove_form=remove_form)
-            else:
-                ret = redirect(url_for('admin'))
+    if request.method == 'POST':
+        ret = redirect(url_for('data'))
+        for case in Switch(mode):
+            if case('MODIFY'):
+                if modify_form.validate_on_submit():
+                    feed_obj = Feed.query.get(int(request.form['name']))
+                    if 'regex' in request.form:
+                        feed_obj.regex = request.form['regex']
+                    if 'strike_url' in request.form:
+                        feed_obj.strike_url = request.form['strike_url']
+                    if 'kickass_url' in request.form:
+                        feed_obj.kickass_url = request.form['kickass_url']
+
+
+                    if 'password' in request.form:
+                        fuser_obj.passwhash = sha512_crypt \
+                                .encrypt(request.form['password'])
+                    user_obj.is_admin = (('is_admin' in request.form) and \
+                            (request.form['is_admin'] == 'y'))
+                    db.session.commit()
+                    flash('Feed modified!', 'success')
+                    break
+            if case('ADD'):
+                if add_form.validate_on_submit():
+                    isadm = (('is_admin' in request.form) and \
+                            (request.form['is_admin'] == 'y'))
+                    new_feed = Feed(request.form['name'],
+                                    request.form['regex'],
+                                    request.form['strike_url'],
+                                    request.form['kickass_url'],
+                                    is_active, has_episodes, has_seasons)
+                    db.session.add(new_feed)
+                    db.session.commit()
+                    flash('Feed added!', 'success')
+                    break
     else:
-        ret = redirect(url_for('index'))
-    return ret
-
-@app.route('/custom/data/manage_rules/<mode>', methods=['GET', 'POST'])
-@login_required
-def manage_users(mode):
-    action_list = ['REMOVE', 'MODIFY', 'ADD']
-    if current_user.is_admin:
-
-        choices = [(a.k, a.pseudo) for a in User.query.all()]
-        remove_form = RemoveUser()
-        add_form = AddUser()
-        modify_form = ModifyUser()
-        for form in [remove_form, modify_form]:
-            form.pseudo.choices = choices
-
-        if request.method == 'POST':
-            ret = redirect(url_for('admin'))
-            for case in Switch(mode):
-                if case('REMOVE'):
-                    if remove_form.validate_on_submit():
-                        pseudo = int(request.form['pseudo'])
-                        db.session.delete(User.query.get(pseudo))
-                        db.session.commit()
-                        flash('User deleted!', 'success')
-                        break
-                if case('MODIFY'):
-                    if modify_form.validate_on_submit():
-                        user_obj = User.query.get(int(request.form['pseudo']))
-                        if 'password' in request.form:
-                            user_obj.passwhash = sha512_crypt \
-                                    .encrypt(request.form['password'])
-                        user_obj.is_admin = (('is_admin' in request.form) and \
-                                (request.form['is_admin'] == 'y'))
-                        db.session.commit()
-                        flash('User modified!', 'success')
-                        break
-                if case('ADD'):
-                    if add_form.validate_on_submit():
-                        isadm = (('is_admin' in request.form) and \
-                                (request.form['is_admin'] == 'y'))
-                        new_user = User(request.form['pseudo'],
-                                        request.form['password'], isadm)
-                        db.session.add(new_user)
-                        db.session.commit()
-                        flash('User added!', 'success')
-                        break
+        if mode in action_list:
+            ret = render_template('feeds.html', mode=mode,
+                                    add_form=add_form,
+                                    modify_form=modify_form)
         else:
-            if mode in action_list:
-                ret = render_template('users.html', mode=mode,
-                                      add_form=add_form,
-                                      modify_form=modify_form,
-                                      remove_form=remove_form)
-            else:
-                ret = redirect(url_for('admin'))
-    else:
-        ret = redirect(url_for('index'))
-    return ret
+            ret = redirect(url_for('data'))
 
+    return ret
 
 
 
