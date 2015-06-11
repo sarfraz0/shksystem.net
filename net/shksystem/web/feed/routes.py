@@ -23,7 +23,7 @@ from flask.ext.login import LoginManager, login_required, login_user, \
 from net.shksystem.common.logic import Switch
 from net.shksystem.web.feed.models import db, User, Feed, Rule, DLLed
 from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
-    ModifyUser
+    ModifyUser, AddFeed, ModifyFeed
 
 # ------------------------------------------------------------------------------
 # Globals
@@ -161,12 +161,6 @@ def run_feeds():
 # -----------------------------------------------------------------------------
 
 
-
-
-
-
-
-
 @app.route('/custom/data', methods=['GET'])
 @login_required
 def data():
@@ -178,7 +172,7 @@ def data():
 def manage_feeds(mode):
     action_list = ['MODIFY', 'ADD']
 
-    choices = [(a.k, a.name) for a in Feed.query.all()]
+    choices = [(a.k, a.name) for a in Feed.query.filter_by(user_k=current_user.k).all()]
     add_form = AddFeed()
     modify_form = ModifyFeed()
     modify_form.name.choices = choices
@@ -195,24 +189,30 @@ def manage_feeds(mode):
                         feed_obj.strike_url = request.form['strike_url']
                     if 'kickass_url' in request.form:
                         feed_obj.kickass_url = request.form['kickass_url']
+                    feed_obj.is_active = (('is_active' in request.form) and \
+                            (request.form['is_active'] == 'y'))
+                    feed_obj.has_episodes = (('has_episodes' in request.form) and \
+                            (request.form['has_episodes'] == 'y'))
+                    feed_obj.has_seasons = (('has_seasons' in request.form) and \
+                            (request.form['has_seasons'] == 'y'))
 
-
-                    if 'password' in request.form:
-                        fuser_obj.passwhash = sha512_crypt \
-                                .encrypt(request.form['password'])
-                    user_obj.is_admin = (('is_admin' in request.form) and \
-                            (request.form['is_admin'] == 'y'))
                     db.session.commit()
                     flash('Feed modified!', 'success')
                     break
             if case('ADD'):
                 if add_form.validate_on_submit():
-                    isadm = (('is_admin' in request.form) and \
-                            (request.form['is_admin'] == 'y'))
+                    is_active = (('is_active' in request.form) and \
+                            (request.form['is_active'] == 'y'))
+                    has_episodes = (('has_episodes' in request.form) and \
+                            (request.form['has_episodes'] == 'y'))
+                    has_seasons = (('has_seasons' in request.form) and \
+                            (request.form['has_seasons'] == 'y'))
+
                     new_feed = Feed(request.form['name'],
                                     request.form['regex'],
                                     request.form['strike_url'],
                                     request.form['kickass_url'],
+                                    current_user.k,
                                     is_active, has_episodes, has_seasons)
                     db.session.add(new_feed)
                     db.session.commit()
@@ -227,23 +227,6 @@ def manage_feeds(mode):
             ret = redirect(url_for('data'))
 
     return ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # -----------------------------------------------------------------------------
 

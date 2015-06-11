@@ -60,6 +60,7 @@ class User(db.Model):
 class Feed(db.Model):
     __tablename__ = 'feeds'
     k = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
     regex = db.Column(db.String, nullable=False)
     strike_url = db.Column(db.String, nullable=False)
     kickass_url = db.Column(db.String, nullable=False)

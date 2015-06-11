@@ -53,19 +53,19 @@ class AddFeed(Form):
     regex = TextField('Regex', validators=[InputRequired()])
     strike_url = TextField('Strike API url', validators=[InputRequired()])
     kickass_url = TextField('Kickass feed url', validators=[InputRequired()])
-    is_active = BooleanField('Active rule', default=True)
+    is_active = BooleanField('Activate rule', default=True)
     has_episodes = BooleanField('Has episodes')
     has_seasons = BooleanField('Has seasons')
 
 
 class ModifyFeed(Form):
     name = SelectField('Name', coerce=int)
-    regex = TextField('Regex')
+    regex = TextField('New Regex')
     strike_url = TextField('New strike API url')
     kickass_url = TextField('New kickass feed url')
-    is_active = BooleanField('Active rule')
-    has_episodes = BooleanField('Has episodes')
-    has_seasons = BooleanField('Has seasons')
+    is_active = BooleanField('Keep rule active')
+    has_episodes = BooleanField('Still has episodes')
+    has_seasons = BooleanField('Still has seasons')
 
 
 class AddRule(Form):
