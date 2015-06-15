@@ -1,0 +1,79 @@
+{% extends 'menu.html' %}
+{% block title %}Rules Management{% endblock %}
+{% block css %}{{ url_for('static', filename='css/rules.css') }}{% endblock %}
+{% block content %}
+
+{% if mode == 'MODIFY' %}
+<form action="{{ url_for('manage_rules', mode='MODIFY') }}" method="post">
+    {{ modify_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Modify Rule</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.name.label }}
+                        {{ modify_form.name }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.is_active }}{{ modify_form.is_active.label }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Update Rule" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% if mode == 'ADD' %}
+<form action="{{ url_for('manage_rules', mode='ADD') }}" method="post">
+    {{ add_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Add Rule</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.name.label }}
+                        {{ add_form.name(autofocus=true, required=true) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.feed_k.label }}
+                        {{ add_form.feed_k }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.is_active }}{{ add_form.is_active.label }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Add Rule" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% endblock %}

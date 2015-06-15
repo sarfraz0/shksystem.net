@@ -89,9 +89,10 @@ class Rule(db.Model):
     dlleds = db.relationship('DLLed', backref='rule')
     feed_k = db.Column(db.Integer, db.ForeignKey('feeds.k'))
 
-    def __init__(self, name, is_active=True):
+    def __init__(self, name, feed_k, is_active=True):
         self.name = name
         self.is_active = is_active
+        self.feed_k = feed_k
 
 class DLLed(db.Model):
     __tablename__ = 'dlleds'

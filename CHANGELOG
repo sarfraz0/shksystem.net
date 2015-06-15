@@ -115,3 +115,7 @@
     + feeds views are nearly done
 * 0.1.7.4
     + worked on feeds form and fixed some random bug
+* 0.1.7.5
+    + added rules form
+    + fixed minors bugs
+    + began working on the logic

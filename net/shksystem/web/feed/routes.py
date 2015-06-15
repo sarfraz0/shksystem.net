@@ -23,7 +23,7 @@ from flask.ext.login import LoginManager, login_required, login_user, \
 from net.shksystem.common.logic import Switch
 from net.shksystem.web.feed.models import db, User, Feed, Rule, DLLed
 from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
-    ModifyUser, AddFeed, ModifyFeed
+    ModifyUser, AddFeed, ModifyFeed, AddRule, ModifyRule
 
 # ------------------------------------------------------------------------------
 # Globals
@@ -221,6 +221,52 @@ def manage_feeds(mode):
     else:
         if mode in action_list:
             ret = render_template('feeds.html', mode=mode,
+                                    add_form=add_form,
+                                    modify_form=modify_form)
+        else:
+            ret = redirect(url_for('data'))
+
+    return ret
+
+@app.route('/custom/data/manage_rules/<mode>', methods=['GET', 'POST'])
+@login_required
+def manage_rules(mode):
+    action_list = ['MODIFY', 'ADD']
+
+    feeds = Feed.query.filter_by(user_k=current_user.k).all()
+    feeds_choices = [(a.k, a.name) for a in feeds]
+    rules_choices = [(rule.k, rule.name) for inner_list in [a.rules for a in feeds] for rule in inner_list]
+    add_form = AddRule()
+    add_form.feed_k.choices = feeds_choices
+    modify_form = ModifyRule()
+    modify_form.name.choices = rules_choices
+
+    if request.method == 'POST':
+        ret = redirect(url_for('data'))
+        for case in Switch(mode):
+            if case('MODIFY'):
+                if modify_form.validate_on_submit():
+                    rule_obj = Rule.query.get(int(request.form['name']))
+                    rule_obj.is_active = (('is_active' in request.form) and \
+                            (request.form['is_active'] == 'y'))
+                    db.session.commit()
+                    flash('Rule modified!', 'success')
+                    break
+            if case('ADD'):
+                if add_form.validate_on_submit():
+                    is_active = (('is_active' in request.form) and \
+                            (request.form['is_active'] == 'y'))
+
+                    new_rule = Rule(request.form['name'],
+                                    request.form['feed_k'],
+                                    is_active)
+                    db.session.add(new_rule)
+                    db.session.commit()
+                    flash('Rule added!', 'success')
+                    break
+    else:
+        if mode in action_list:
+            ret = render_template('rules.html', mode=mode,
                                     add_form=add_form,
                                     modify_form=modify_form)
         else:
