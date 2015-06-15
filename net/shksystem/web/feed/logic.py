@@ -16,12 +16,8 @@ import os
 import logging
 import re
 import json
-import dateutil
 import shutil
 # installed
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from celery import Celery
 import numpy
 import pandas as pa
@@ -29,7 +25,6 @@ import requests
 import feedparser
 import transmissionrpc as tr
 # custom
-from net.shksystem.common.utils import get_current_timestamp, format_to_regex
 from net.shksystem.common.send_mail import SendMail
 
 # -----------------------------------------------------------------------------
@@ -39,7 +34,7 @@ from net.shksystem.common.send_mail import SendMail
 logger = logging.getLogger(__name__)
 
 queue = Celery('tasks', broker='amqp://')
-# celery -A net.shksystem.scripts.feed worker --loglevel=info
+# celery -A net.shksystem.web.feed.logic worker --loglevel=info
 
 # -----------------------------------------------------------------------------
 # Classes & Functions
@@ -49,43 +44,50 @@ queue = Celery('tasks', broker='amqp://')
 class GetFeed(object):
     """ This class implements the frame getters for popular sites """
 
-    def __init__(self, feed):
-        self.feed = feed
+    def __init__(self, regex, strike_url, kickass_url, has_episodes=False,
+                 has_seasons=False):
+        self.regex = regex
+        self.strike_url = strike_url
+        self.kickass_url = kickass_url
+        self.has_episodes = has_episodes
+        self.has_seasons = has_seasons
 
     def _reord(self, d):
         d = d.reindex(columns=['title', 'published', 'size', 'magnet_uri'])
         d.sort(['published', 'title', 'size'], ascending=False, inplace=True)
 
-        regobj = re.compile(self.feed.regex)
-
-        def map_name(r, title):
-            if r.match(title, re.IGNORECASE) and r.groups > 0:
-                ret = r.match(title, re.IGNORECASE).group(1).strip()
+        def map_title(regex, group_num, default_ret, title):
+            ma = re.match(regex, title)
+            if ma and re.compile(regex).groups >= group_num:
+                ret = ma.group(group_num).strip()
             else:
-                ret = numpy.nan
+                ret = default_ret
             return ret
-        d['name'] = d['title'].map(lambda x: map_name(regobj, x))
 
+        if self.has_episodes and self.has_seasons:
+            season_grp = 2
+            episode_grp = 3
+        elif self.has_episodes:
+            season_grp = 42
+            episode_grp = 2
+        else:
+            season_grp = 42
+            episode_grp = 42
+
+        regex = self.regex
+        d['name'] = d['title'] \
+                .map(lambda x: map_title(self.regex, 1, numpy.nan, x))
         d.dropna(inplace=True)
-
-        if self.feed.has_episodes and regobj.groups > 2:
-            d['episode'] = d['title'] \
-                .map(lambda x: int(reobj.match(x, re.IGNORECASE).group(3)))
-        else:
-            df['episode'] = 0
-
-        if self.feed.has_seasons and regobj.groups > 1:
-            d['season'] = d['title'] \
-                .map(lambda x: int(reobj.match(x, re.IGNORECASE).group(2)))
-        else:
-            d['season'] = 0
-
+        d['episode'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, episode_grp, 0, x)))
+        d['season'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, season_grp, 0, x)))
         d.drop_duplicates(['name', 'season', 'episode'], inplace=True)
 
         return d
 
     def get_from_strike(self):
-        r = requests.get(self.feed.strike_url)
+        r = requests.get(self.strike_url)
         j = json.loads(r.text)
         d = pa.DataFrame(j['torrents'])
         d.rename(columns={'torrent_title': 'title', 'upload_date': 'published'},
@@ -94,25 +96,36 @@ class GetFeed(object):
         return d
 
     def get_from_kickass(self):
-        rss = feedparser.parse(self.feed.kickass_url)
+        rss = feedparser.parse(self.kickass_url)
         d = pa.DataFrame(rss['entries'])
         d.rename(columns={'torrent_magneturi': 'magnet_uri',
                           'torrent_contentlength': 'size'}, inplace=True)
         d = self._reord(d)
         return d
 
+    def get(self):
+        ret = None
+        retry = False
+        try:
+            ret = self.get_from_strike()
+        except:
+            logger.exception('Cannot get json from Strike API.')
+            retry = True
+        if retry:
+            try:
+                ret = self.get_from_kickass()
+            except:
+                logger.exception('Cannot get feed from kickass RSS.')
+        return ret
+
 
 @queue.task
-def run_frame(cnf, group):
-
-    # Connecting to database
-    logger.info('Connecting to database...')
-    Session = sessionmaker(bind=create_engine(cnf['DB_URI']))
-    s = Session()
+def run_frame(cnf, feed):
     logger.info('Running frame...')
 
     # Reading Excel rules
     rules = pa.read_excel(cnf['RULES_XLS'], sheetname=group.rule_sheet)
+    rules = feed.rules
     logger.info('Excel rules loaded')
     feeds = group.get()
     feeds['lower_name'] = feeds['name'].map(lambda x: x.strip().lower())

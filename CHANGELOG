@@ -119,3 +119,6 @@
     + added rules form
     + fixed minors bugs
     + began working on the logic
+* 0.1.7.6
+    + added feed notebook
+    + modified feed to add logic.py

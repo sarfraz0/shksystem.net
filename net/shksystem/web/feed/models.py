@@ -81,6 +81,73 @@ class Feed(db.Model):
         self.is_active = is_active
         self.user_k = user_k
 
+    def _reord(self, d):
+        d = d.reindex(columns=['title', 'published', 'size', 'magnet_uri'])
+        d.sort(['published', 'title', 'size'], ascending=False, inplace=True)
+
+        def map_title(regex, group_num, default_ret, title):
+            ma = re.match(regex, title)
+            if ma and re.compile(regex).groups >= group_num:
+                ret = ma.group(group_num).strip()
+            else:
+                ret = default_ret
+            return ret
+
+        if self.has_episodes and self.has_seasons:
+            season_grp = 2
+            episode_grp = 3
+        elif self.has_episodes:
+            season_grp = 42
+            episode_grp = 2
+        else:
+            season_grp = 42
+            episode_grp = 42
+
+        regex = self.regex
+        d['name'] = d['title'] \
+                .map(lambda x: map_title(self.regex, 1, numpy.nan, x))
+        d.dropna(inplace=True)
+        d['episode'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, episode_grp, 0, x)))
+        d['season'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, season_grp, 0, x)))
+        d.drop_duplicates(['name', 'season', 'episode'], inplace=True)
+
+        return d
+
+    def get_from_strike(self):
+        r = requests.get(self.strike_url)
+        j = json.loads(r.text)
+        d = pa.DataFrame(j['torrents'])
+        d.rename(columns={'torrent_title': 'title', 'upload_date': 'published'},
+                 inplace=True)
+        d = self._reord(d)
+        return d
+
+    def get_from_kickass(self):
+        rss = feedparser.parse(self.kickass_url)
+        d = pa.DataFrame(rss['entries'])
+        d.rename(columns={'torrent_magneturi': 'magnet_uri',
+                          'torrent_contentlength': 'size'}, inplace=True)
+        d = self._reord(d)
+        return d
+
+    def get(self):
+        ret = None
+        retry = False
+        try:
+            ret = self.get_from_strike()
+        except:
+            logger.exception('Cannot get json from Strike API.')
+            retry = True
+        if retry:
+            try:
+                ret = self.get_from_kickass()
+            except:
+                logger.exception('Cannot get feed from kickass RSS.')
+        return ret
+
+
 class Rule(db.Model):
     __tablename__ = 'rules'
     k = db.Column(db.Integer, primary_key=True)
