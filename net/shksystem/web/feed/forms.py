@@ -14,7 +14,8 @@
 # standard
 # installed
 from flask_wtf import Form
-from wtforms import TextField, PasswordField, BooleanField, SelectField
+from wtforms import TextField, PasswordField, BooleanField, SelectField, \
+        IntegerField
 from wtforms.validators import InputRequired
 # custom
 
@@ -77,6 +78,18 @@ class AddRule(Form):
 class ModifyRule(Form):
     name = SelectField('Name', coerce=int)
     is_active = BooleanField('Keep rule active')
+
+
+class AddMailServer(Form):
+    server = TextField('Hostname', validators=[InputRequired()])
+    port = IntegerField('Port')
+    username = TextField('Username', validators=[InputRequired()])
+    password = PasswordField('Password', validators=[InputRequired()])
+    sender = TextField('Sender', validators=[InputRequired()])
+
+class RemoveMailServer(Form):
+    mail_server = SelectField('Server', coerce=int)
+
 
 
 # ------------------------------------------------------------------------------
