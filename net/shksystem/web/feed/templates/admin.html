@@ -6,25 +6,19 @@
 <div class="row">
     <div class="large-12 columns">
         <table>
-            <caption>Users</caption>
             <tr>
+                <td><strong>Users</strong></td>
                 <td><a href={{ url_for('manage_users', mode='ADD')}}>Add</a></td>
                 <td><a href={{ url_for('manage_users', mode='MODIFY')}}>Modify</a></td>
                 <td><a href={{ url_for('manage_users', mode='REMOVE')}}>Remove</a></td>
             </tr>
-        </table>
-    </div>
-</div>
-
-
-<div class="row">
-    <div class="large-12 columns">
-        <table>
-            <caption>Mail servers</caption>
             <tr>
+                <td><strong>Mail servers</strong></td>
                 <td><a href={{ url_for('manage_mail_servers', mode='ADD')}}>Add</a></td>
+                <td></td>
                 <td><a href={{ url_for('manage_mail_servers', mode='REMOVE')}}>Remove</a></td>
             </tr>
+
         </table>
     </div>
 </div>

@@ -114,17 +114,15 @@ class Rule(db.Model):
 class DLLed(db.Model):
     __tablename__ = 'dlleds'
     k = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
     magnet_uri = db.Column(db.String, nullable=False)
     dayofdown = db.Column(db.String, nullable=False)
-    in_filesytem = db.Column(db.Boolean, default=False)
     rule_k = db.Column(db.Integer, db.ForeignKey('rules.k'))
 
-    def __init__(self, magnet_uri, filepath):
+    def __init__(self, name, magnet_uri):
+        self.name = name
         self.magnet_uri = magnet_uri
         self.dayofdown = get_current_timestamp()
-        self.in_filesystem = os.path.isfile(filepath)
-
-
 
 # ------------------------------------------------------------------------------
 #

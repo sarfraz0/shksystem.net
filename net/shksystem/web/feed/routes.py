@@ -12,6 +12,7 @@
 # ------------------------------------------------------------------------------
 
 # standard
+import os
 import logging
 # installed
 from celery import Celery
@@ -22,7 +23,7 @@ from flask.ext.login import LoginManager, login_required, login_user, \
     logout_user, current_user
 # custom
 from net.shksystem.common.logic import Switch
-fram net.shksystem.common.send_mail import SendMail
+from net.shksystem.common.send_mail import SendMail
 from net.shksystem.web.feed.models import db, User, Feed, Rule, DLLed, \
     MailServer
 from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
@@ -57,7 +58,7 @@ def load_user(k):
 # ------------------------------------------------------------------------------
 
 
-class GetFeed(object):
+class FeedFrame(object):
     """ This class implements the frame getters for popular sites """
 
     def __init__(self, regex, strike_url, kickass_url, has_episodes=False,
@@ -135,16 +136,13 @@ class GetFeed(object):
         return ret
 
 @queue.task
-def run_frame(frame, rules, ):
+def run_frame(feed_id):
     logger.info('Running frame...')
 
-    # Reading Excel rules
-    rules = pa.read_excel(cnf['RULES_XLS'], sheetname=group.rule_sheet)
-    rules = feed.rules
-    logger.info('Excel rules loaded')
-    feeds = group.get()
-    feeds['lower_name'] = feeds['name'].map(lambda x: x.strip().lower())
-    logger.info('Done querying news feeds')
+    cnf = app.config
+    feed = Feed.query.filter_by(k=feed_id).first()
+    feed_frame = FeedFrame(feed.regex, feed.strike_url, feed.kickass_url,
+                           feed.has_episodes, feed.has_seasons)
 
     # Connecting to transmission and mail server
     ml = SendMail(cnf['EMAIL']['HOST'], cnf['EMAIL']['PORT'],
@@ -154,11 +152,11 @@ def run_frame(frame, rules, ):
 
     # Parsing rules
     logger.info('Iterating on rules')
-    uris = [x.magnet_uri for x in s.query(DLLed).all()]
-    for index, rule_row in rules.iterrows():
-        name = rule_row['Name']
+    for rule in feed.rules:
+        uris = [x.magnet_uri for x in rule.dlleds]
+        name = rule.name
         logger.info('Treating rule for %s', name)
-        concerned_feeds = feeds[feeds['lower_name'] == name.strip().lower()]
+        concerned_feeds = feed_frame[feed_frame['lower_name'] == name.strip().lower()]
         logger.info('Filtering on name')
         if len(concerned_feeds) > 0:
             logger.info('Filter returned elements to process')
@@ -170,7 +168,8 @@ def run_frame(frame, rules, ):
                         rc.add_torrent(magnet_uri)
                     except tr.error.TransmissionError:
                         break
-                    s.add(DLLed(feed_row['name'], magnet_uri))
+                    db.session.add(DLLed(feed_row['name'], magnet_uri]))
+                    db.session.commit()
                     logger.info('Torrent %s added.', feed_row['title'])
                     subj = 'New video.'
                     msg = 'The file {0} will soon be available.' \
@@ -178,16 +177,12 @@ def run_frame(frame, rules, ):
                         feed_row['title'], ) + ' Download in progress...'
                     ml.send_mail(cnf['EMAIL']['FROM'],
                                  subj, msg, cnf['EMAIL']['TO'])
-    s.commit()
+    s.commit(]
 
 
-def get_torrents(cnf):
-    logger.info('Getting DIMENSION feed')
-    dim = GetDimension()
-    run_frame.delay(cnf, dim)
-    logger.info('Getting HorribleSubs feed')
-    hor = GetHorribleSubs()
-    run_frame.delay(cnf, hor)
+def get_torrents():
+    for feed_id in [x.k in x for Feed.query.all()]:
+        run_frame(feed_id).delay()
 
 
 @queue.task
