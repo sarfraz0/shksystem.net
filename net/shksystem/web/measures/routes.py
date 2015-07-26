@@ -14,10 +14,8 @@
 # standard
 import os
 import logging
-import random
-import json
 # installed
-from pandas import DataFrame
+from celery import Celery
 from passlib.hash import sha512_crypt
 from flask import Flask, render_template, request, redirect, url_for, \
     session, flash
@@ -26,7 +24,6 @@ from flask.ext.login import LoginManager, login_required, login_user, \
 # custom
 from net.shksystem.common.logic import Switch
 from net.shksystem.common.send_mail import SendMail
-from net.shksystem.scripts.feed import ReleaseFrame
 from net.shksystem.web.feed.models import db, User, Feed, Rule, DLLed, \
     MailServer
 from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
@@ -39,11 +36,14 @@ from net.shksystem.web.feed.forms import LoginForm, RemoveUser, AddUser, \
 
 logger = logging.getLogger(__name__)
 
+queue = Celery('tasks', backend=os.environ['CELERY_BACKEND_URI'],
+               broker=os.environ['CELERY_BROKER_URI'])
+# celery -A net.shksystem.web.feed.logic worker --loglevel=info
+
 app = Flask(__name__)
 db.init_app(app)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+login_manager = LoginManagemeasureslogin_manager.init_app(app)
 @login_manager.user_loader
 def load_user(k):
     return User.query.get(int(k))
@@ -52,6 +52,168 @@ def load_user(k):
 # Classes and Functions
 # ------------------------------------------------------------------------------
 # NONE
+# ------------------------------------------------------------------------------
+# Tasks
+# ------------------------------------------------------------------------------
+
+
+class FeedFrame(object):
+    """ This class implements the frame getters for popular sites """
+
+    def __init__(self, regex, strike_url, kickass_url, has_episodes=False,
+                 has_seasons=False):
+        self.regex        = regex
+        self.strike_url   = strike_url
+        self.kickass_url  = kickass_url
+        self.has_episodes = has_episodes
+        self.has_seasons  = has_seasons
+
+    def _reord(self, d):
+        d = d.reindex(columns=['title', 'published', 'size', 'magnet_uri'])
+        d.sort(['published', 'title', 'size'], ascending=False, inplace=True)
+
+        def map_title(regex, group_num, default_ret, title):
+            ret = default_ret
+            ma = re.match(regex, title)
+            if ma and re.compile(regex).groups >= group_num:
+                ret = ma.group(group_num).strip()
+            return ret
+
+        if self.has_episodes and self.has_seasons:
+            season_grp = 2
+            episode_grp = 3
+        elif self.has_episodes:
+            season_grp = 42
+            episode_grp = 2
+        else:
+            season_grp = 42
+            episode_grp = 42
+
+        d['name'] = d['title'] \
+                .map(lambda x: map_title(self.regex, 1, numpy.nan, x))
+        d.dropna(inplace=True)
+        d['episode'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, episode_grp, 0, x)))
+        d['season'] = d['title'] \
+                .map(lambda x: int(map_title(self.regex, season_grp, 0, x)))
+        d.drop_duplicates(['name', 'season', 'episode'], inplace=True)
+
+        return d
+
+    def get_from_strike(self):
+        r = requests.get(self.strike_url)
+        j = json.loads(r.text)
+        d = pa.DataFrame(j['torrents'])
+        d.rename(columns={'torrent_title': 'title', 'upload_date': 'published'},
+                 inplace=True)
+        d = self._reord(d)
+        return d
+
+    def get_from_kickass(self):
+        rss = feedparser.parse(self.kickass_url)
+        d = pa.DataFrame(rss['entries'])
+        d.rename(columns={'torrent_magneturi': 'magnet_uri',
+                          'torrent_contentlength': 'size'}, inplace=True)
+        d = self._reord(d)
+        return d
+
+    def get(self):
+        ret = None
+        retry = False
+        try:
+            ret = self.get_from_strike()
+        except:
+            logger.exception('Cannot get json from Strike API.')
+            retry = True
+        if retry:
+            try:
+                ret = self.get_from_kickass()
+            except:
+                logger.exception('Cannot get feed from kickass RSS.')
+        return ret
+
+@queue.task
+def run_frame(feed_id):
+    logger.info('Running frame...')
+
+    cnf = app.config
+    feed = Feed.query.filter_by(k=feed_id).first()
+    feed_frame = FeedFrame(feed.regex, feed.strike_url, feed.kickass_url,
+                           feed.has_episodes, feed.has_seasons)
+
+    # Connecting to transmission and mail server
+    ml = SendMail(cnf['EMAIL']['HOST'], cnf['EMAIL']['PORT'],
+                  cnf['EMAIL']['USER'])
+    rc = tr.Client(cnf['TRANSMISSION']['HOST'], cnf['TRANSMISSION']['PORT'])
+    logger.info('Connection to transmission open')
+
+    # Parsing rules
+    logger.info('Iterating on rules')
+    for rule in feed.rules:
+        uris = [x.magnet_uri for x in rule.dlleds]
+        name = rule.name
+        logger.info('Treating rule for %s', name)
+        concerned_feeds = feed_frame[feed_frame['lower_name'] == name.strip().lower()]
+        logger.info('Filtering on name')
+        if len(concerned_feeds) > 0:
+            logger.info('Filter returned elements to process')
+            for index, feed_row in concerned_feeds.iterrows():
+                magnet_uri = feed_row['magnet_uri']
+                if magnet_uri not in uris:
+                    logger.info('First time encountering element. Processing..')
+                    try:
+                        rc.add_torrent(magnet_uri)
+                    except tr.error.TransmissionError:
+                        break
+                    db.session.add(DLLed(feed_row['name'], magnet_uri))
+                    db.session.commit()
+                    logger.info('Torrent %s added.', feed_row['title'])
+                    subj = 'New video.'
+                    msg = 'The file {0} will soon be available.' \
+                              .format(
+                        feed_row['title'], ) + ' Download in progress...'
+                    ml.send_mail(cnf['EMAIL']['FROM'],
+                                 subj, msg, cnf['EMAIL']['TO'])
+    s.commit()
+
+
+def get_torrents():
+    for feed_id in [x.k for x in Feed.query.all()]:
+        run_frame(feed_id).delay()
+
+
+@queue.task
+def dllrange(cnf, rules):
+    for source in cnf['SOURCES']:
+        logger.info('Processing source : %s.', source)
+        for rindex, rule in rules.iterrows():
+            logger.info('Treating rule named : %s', rule['Name'])
+            dest = os.path.join(rule['Destination'], rule['Name'])
+            if not os.path.isdir(dest):
+                try:
+                    os.mkdir(dest)
+                except OSError:
+                    logger.warn('Rule destination {0} is not accessible.'
+                                .format(dest, ) + ' Skipping.')
+                    continue
+            for filename in os.listdir(source):
+                if re.match(format_to_regex(rule['Name']),
+                            filename.strip().lower()):
+                    logger.info('Filename %s matches rule.', filename)
+                    dest_path = os.path.join(dest, filename)
+                    try:
+                        os.unlink(dest_path)
+                    except:
+                        pass
+                    logger.info('Moving file.')
+                    shutil.move(os.path.join(source, filename), dest_path)
+
+
+def dllranges(cnf):
+    xl = pa.ExcelFile(cnf['RULES_XLS'])
+    for current_sheet in xl.sheet_names:
+        dllrange.delay(cnf, xl.parse(current_sheet))
+
 # ------------------------------------------------------------------------------
 # Routes
 # ------------------------------------------------------------------------------
@@ -144,7 +306,7 @@ def manage_users(mode):
         else:
             if mode in action_list:
                 ret = render_template('users.html', mode=mode,
-                                     add_form=add_form,
+                                      add_form=add_form,
                                       modify_form=modify_form,
                                       remove_form=remove_form)
             else:
@@ -200,45 +362,11 @@ def manage_mail_servers(mode):
 
 @app.route('/api/v1/run/feed/<feed_name>', methods=['GET'])
 def run_feed(feed_name):
-    logger.info('Processing feed %s', feed_name)
-    feed = Feed.query.filter_by(name=feed_name).first()
-    logger.info('%s', feed.to_json())
-    if (feed is not None) and feed.is_active:
-        logger.info('Relative data found. Creating release frame...')
-        f = ReleaseFrame()
-        d = f.get(feed.kickass_url, feed.strike_url, feed.regex,
-                  feed.has_episodes, feed.has_seasons)
-        logger.info('Feed retrieved.')
-        logger.info('%s', DataFrame.to_string(d))
-        ml = random.choice(MailServer.query.all())
-        mlj = ml.to_dict()
-        mlj['SUBJECT'] = 'New download in progress...'
-        logger.info('Mail infos init... Done.')
-        logger.info('%s', json.dumps(mlj))
-        for rule in feed.rules:
-            if rule.is_active:
-                logger.info('Rule %s is active. Processing...', rule.name)
-                f.get_rule(d, rule.name, mlj)
-    return '{\'responseStatus\': 200, \'responseBody\': \'\'}'
+    pass
 
 @app.route('/api/v1/run/feeds', methods=['GET'])
 def run_feeds():
-    feeds = Feed.query.all()
-    for feed in feeds:
-        if (feed is not None) and feed.is_active:
-            f = ReleaseFrame()
-            d = f.get(feed.kickass_uri, feed.strike_uri, feed.regex,
-                      feed.has_episodes, feed.has_seasons)
-            ml = random.choice(MailServer.query.all())
-            mj = { 'HOST'   : ml.server
-                 , 'PORT'   : ml.port
-                 , 'USER'   : ml.username
-                 , 'FROM'   : ml.sender
-                 , 'TO'     : ml.sender
-                 , 'SUBJECT': 'New download in progress...' }
-            for rule in feed.rules:
-                if rule.is_active:
-                    f.get_rule(d, rule.name, mj)
+    pass
 
 # -----------------------------------------------------------------------------
 
@@ -268,8 +396,6 @@ def manage_feeds(mode):
             if case('MODIFY'):
                 if modify_form.validate_on_submit():
                     feed_obj = Feed.query.get(int(request.form['name']))
-                    if 'category' in request.form:
-                        feed_obj.category = request.form['category']
                     if 'regex' in request.form:
                         feed_obj.regex = request.form['regex']
                     if 'strike_url' in request.form:
@@ -282,8 +408,7 @@ def manage_feeds(mode):
                             (request.form['has_episodes'] == 'y'))
                     feed_obj.has_seasons = (('has_seasons' in request.form) and \
                             (request.form['has_seasons'] == 'y'))
-                    feed_obj.dest = request.form['dest'] if \
-                            'dest' in request.form else ''
+
                     db.session.commit()
                     flash('Feed modified!', 'success')
                     break
@@ -295,16 +420,13 @@ def manage_feeds(mode):
                             (request.form['has_episodes'] == 'y'))
                     has_seasons = (('has_seasons' in request.form) and \
                             (request.form['has_seasons'] == 'y'))
-                    dest = request.form['dest'] if \
-                            'dest' in request.form else ''
+
                     new_feed = Feed(request.form['name'],
-                                    request.form['category'],
                                     request.form['regex'],
                                     request.form['strike_url'],
                                     request.form['kickass_url'],
                                     current_user.k,
-                                    is_active, has_episodes, has_seasons,
-                                    dest)
+                                    is_active, has_episodes, has_seasons)
                     db.session.add(new_feed)
                     db.session.commit()
                     flash('Feed added!', 'success')

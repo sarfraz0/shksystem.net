@@ -13,7 +13,6 @@
 
 # standard
 import os
-import json
 # installed
 import keyring
 from passlib.hash import sha512_crypt
@@ -73,61 +72,31 @@ class MailServer(db.Model):
         self.sender = sender
         keyring.set_password(server, username, password)
 
-    def to_dict(self):
-        ret = {}
-        ret['SERVER'] = self.server
-        ret['PORT'] = self.port
-        ret['USERNAME'] = self.username
-        ret['SENDER'] = self.sender
-        return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
 
 class Feed(db.Model):
     __tablename__ = 'feeds'
     k = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
-    category = db.Column(db.String, nullable=False)
     regex = db.Column(db.String, nullable=False)
     strike_url = db.Column(db.String, nullable=False)
     kickass_url = db.Column(db.String, nullable=False)
     has_episodes = db.Column(db.Boolean, default=False)
     has_seasons = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
-    dest = db.Column(db.String)
     rules = db.relationship('Rule', backref='feed')
     user_k = db.Column(db.Integer, db.ForeignKey('users.k'))
 
-    def __init__(self, name, cat, regex, strike_url, kickass_url, user_k,
-                 has_episodes=False, has_seasons=False, is_active=True,
-                 dest=''):
+    def __init__(self, name, regex, strike_url, kickass_url, user_k,
+                 has_episodes=False, has_seasons=False, is_active=True):
         self.name = name
-        self.category = cat
         self.regex = regex
         self.strike_url = strike_url
         self.kickass_url = kickass_url
         self.has_episodes = has_episodes
         self.has_seasons = has_seasons
         self.is_active = is_active
-        self.dest = dest
         self.user_k = user_k
 
-    def to_dict(self):
-        ret = {}
-        ret['NAME'] = self.name
-        ret['CATEGORY'] = self.category
-        ret['REGEX'] = self.regex
-        ret['STRIKE_URL'] = self.strike_url
-        ret['KICKASS_URL'] = self.kickass_url
-        ret['HAS_EPISODES'] = self.has_episodes
-        ret['HAS_SEASONS'] = self.has_seasons
-        ret['IS_ACTIVE'] = self.is_active
-        ret['DEST'] = self.dest
-        return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
 
 class Rule(db.Model):
     __tablename__ = 'rules'

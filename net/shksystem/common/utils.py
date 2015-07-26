@@ -36,9 +36,7 @@ log = getLogger(__name__)
 
 def init_logger(log_path, log_level):
     """ This function add console and file handlers to a Logger object
-        init_logger :: FilePath
-                   -> String
-                   -> IO Logger
+        init_logger :: FilePath -> String -> IO Logger
     """
     loggo = getLogger()
     # setting formatter
@@ -61,9 +59,8 @@ def init_logger(log_path, log_level):
 
 def compile_tex(tex_source_file):
     """ This function calls pdflatex on LaTEX source file and performs basic
-    cleanup afterwards
-        compileTex :: FilePath
-                   -> IO ()
+        cleanup afterwards
+        compileTex :: FilePath -> IO ()
     """
     if not os.path.isfile(tex_source_file):
         log.warn('Input file does not exist : %s.', tex_source_file)
@@ -98,10 +95,7 @@ def get_current_timestamp():
 
 def replace_in_file(fic, patt, subst):
     """ This function replaces the string value in the file for the new one
-        replace_in_file :: FilePath
-                        -> String
-                        -> String
-                        -> IO ()
+        replace_in_file :: FilePath -> String -> String -> IO ()
     """
     nfic = None
     ofic = None
@@ -135,8 +129,7 @@ def remove_existing_fics(list_of_fics):
 
 def remove_file_duplicates(fic):
     """ This function recreate a file while removing duplicates lines in it
-        remove_file_duplicates :: FilePath
-                              -> IO ()
+        remove_file_duplicates :: FilePath -> IO ()
     """
     if os.path.isfile(fic):
         try:
@@ -165,11 +158,8 @@ def remove_file_duplicates(fic):
 
 def intersperse(iterable, delimiter):
     """ This function adds given string between elements of a list
-    http://stackoverflow.com/questions
-        /5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
-        intersperse :: [String]
-                    -> String
-                    -> [String]
+    http://stackoverflow.com/questions/5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
+        intersperse :: [String] -> String -> [String]
     """
     it = iter(iterable)
     yield next(it)
@@ -178,8 +168,10 @@ def intersperse(iterable, delimiter):
         yield x
 
 
-def format_to_regex(to_format):
-    """
+def regexify(to_format):
+    """ This function try to convert any given string to regex so the pattern
+        can be looked up
+        regexify :: String -> String
     """
     ret = ''
     ret = to_format.lower().strip()

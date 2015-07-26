@@ -125,3 +125,6 @@
 * 0.1.7.7
     + mail_servers feature complete
     + began working on celery tasks
+* 0.1.8.0
+    + feed is stable
+    + added pip configuration

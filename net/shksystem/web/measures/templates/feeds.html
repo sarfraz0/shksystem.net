@@ -12,13 +12,9 @@
                 <legend>Modify feed</legend>
 
                 <div class="row">
-                    <div class="large-6 columns">
+                    <div class="large-12 columns">
                         {{ modify_form.name.label }}
                         {{ modify_form.name }}
-                    </div>
-                    <div class="large-6 columns">
-                        {{ modify_form.category.label }}
-                        {{ modify_form.category }}
                     </div>
                 </div>
 
@@ -60,13 +56,6 @@
                 </div>
 
                 <div class="row">
-                    <div class="large-12 columns">
-                        {{ modify_form.dest.label }}
-                        {{ modify_form.dest }}
-                    </div>
-                </div>
-
-                <div class="row">
                     <div class="large-3 large-offset-9 columns">
                         <input type="submit" value="Submit" class="button">
                     </div>
@@ -87,13 +76,9 @@
                 <legend>Add feed</legend>
 
                 <div class="row">
-                    <div class="large-6 columns">
+                    <div class="large-12 columns">
                         {{ add_form.name.label }}
                         {{ add_form.name(autofocus=true, required=true) }}
-                    </div>
-                    <div class="large-6 columns">
-                        {{ add_form.category.label }}
-                        {{ add_form.category(autofocus=true, required=true) }}
                     </div>
                 </div>
 
@@ -115,13 +100,6 @@
                     <div class="large-12 columns">
                         {{ add_form.kickass_url.label }}
                         {{ add_form.kickass_url(autofocus=true, required=true) }}
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="large-12 columns">
-                        {{ add_form.dest.label }}
-                        {{ add_form.dest }}
                     </div>
                 </div>
 

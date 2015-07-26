@@ -51,26 +51,23 @@ class AddUser(Form):
 
 class AddFeed(Form):
     name = TextField('Name', validators=[InputRequired()])
-    category = TextField('Category', validators=[InputRequired()])
     regex = TextField('Regex', validators=[InputRequired()])
     strike_url = TextField('Strike API url', validators=[InputRequired()])
     kickass_url = TextField('Kickass feed url', validators=[InputRequired()])
     is_active = BooleanField('Activate feed', default=True)
     has_episodes = BooleanField('Has episodes')
     has_seasons = BooleanField('Has seasons')
-    dest = TextField('Mailing list')
 
 
 class ModifyFeed(Form):
     name = SelectField('Name', coerce=int)
-    category = TextField('New Category')
     regex = TextField('New Regex')
     strike_url = TextField('New strike API url')
     kickass_url = TextField('New kickass feed url')
     is_active = BooleanField('Keep feed active')
     has_episodes = BooleanField('Still has episodes')
     has_seasons = BooleanField('Still has seasons')
-    dest = TextField('New mailing list')
+
 
 class AddRule(Form):
     name = TextField('Name', validators=[InputRequired()])
@@ -92,6 +89,7 @@ class AddMailServer(Form):
 
 class RemoveMailServer(Form):
     mail_server = SelectField('Server', coerce=int)
+
 
 
 # ------------------------------------------------------------------------------
