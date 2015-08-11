@@ -11,11 +11,16 @@
   </head>
   <body>
 
-    {% block content %}{% endblock %}
+    <script type=text/javascript>
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
 
     <script src="{{ url_for('static', filename='foundation/js/vendor/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='foundation/js/vendor/modernizr.js') }}"></script>
     <script src="{{ url_for('static', filename='foundation/js/foundation.min.js') }}"></script>
+
+    {% block content %}{% endblock %}
+
     <script>
       $(document).foundation();
     </script>

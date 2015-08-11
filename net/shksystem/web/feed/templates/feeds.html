@@ -76,6 +76,24 @@
         </div>
     </div>
 </form>
+
+<script type="text/javascript" charset="utf-8">
+function get_feed() {
+$.getJSON($SCRIPT_ROOT + "/api/ajax/get_feed/"+ $("#{{ modify_form.name.id }}").val(),
+    function(data) {
+    $("#{{ modify_form.category.id }}").prop("value", data.CATEGORY);
+    $("#{{ modify_form.regex.id }}").prop("value", data.REGEX);
+    $("#{{ modify_form.strike_url.id }}").prop("value", data.STRIKE_URL);
+    $("#{{ modify_form.kickass_url.id }}").prop("value", data.KICKASS_URL);
+    $("#{{ modify_form.dest.id }}").prop("value", data.DEST);
+    $("#{{ modify_form.has_episodes.id }}").prop("checked", data.HAS_EPISODES);
+    $("#{{ modify_form.has_seasons.id }}").prop("checked", data.HAS_SEASONS);
+    $("#{{ modify_form.is_active.id }}").prop("checked", data.IS_ACTIVE);
+  });
+}
+get_feed();
+$("#{{ modify_form.name.id }}").change(function(e) { get_feed(); });
+</script>
 {% endif %}
 
 {% if mode == 'ADD' %}
@@ -144,6 +162,33 @@
                 <div class="row">
                     <div class="large-3 large-offset-9 columns">
                         <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% if mode == 'REMOVE' %}
+<form action="{{ url_for('manage_feeds', mode='REMOVE') }}" method="post">
+    {{ remove_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Remove feed</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ remove_form.name.label }}
+                        {{ remove_form.name }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        <input type="submit" value="Submit" class="button expand">
                     </div>
                 </div>
 

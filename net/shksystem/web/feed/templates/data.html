@@ -5,24 +5,20 @@
 
 <div class="row">
     <div class="large-12 columns">
-        <table>
-            <caption>Feeds</caption>
+        <table align="center" style="margin-top:50px;">
             <tr>
+                <td><strong>Feeds</strong></td>
                 <td><a href={{ url_for('manage_feeds', mode='ADD')}}>Add</a></td>
                 <td><a href={{ url_for('manage_feeds', mode='MODIFY')}}>Modify</a></td>
+                <td><a href={{ url_for('manage_feeds', mode='REMOVE')}}>Remove</a></td>
             </tr>
-        </table>
-    </div>
-</div>
-
-<div class="row">
-    <div class="large-12 columns">
-        <table>
-            <caption>Rules</caption>
             <tr>
+                <td><strong>Rules</strong></td>
                 <td><a href={{ url_for('manage_rules', mode='ADD')}}>Add</a></td>
                 <td><a href={{ url_for('manage_rules', mode='MODIFY')}}>Modify</a></td>
+                <td><a href={{ url_for('manage_rules', mode='REMOVE')}}>Remove</a></td>
             </tr>
+
         </table>
     </div>
 </div>

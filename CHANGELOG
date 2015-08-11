@@ -128,3 +128,11 @@
 * 0.1.8.0
     + feed is stable
     + added pip configuration
+* 0.1.8.1
+    + added http basic auth to run api
+    + added dynamic forms and modification forms for all the datatypes
+    + added required login for all the ajax stuff
+    + added custom 401 error
+    + added wsgi module to handle standard configuration
+    + stable release
+

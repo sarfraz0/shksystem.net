@@ -1,15 +1,10 @@
-#numpy
-#pycrypto
-celery
 transmissionrpc
 feedparser
 requests
 pandas
-ipython[notebook]
 flask-login
 flask-migrate
-flask-csrf
-pyside
-fabric
+flask-wtf
+flask-httpauth
 passlib
 keyring

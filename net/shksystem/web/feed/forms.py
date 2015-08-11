@@ -40,7 +40,7 @@ class RemoveUser(Form):
 class ModifyUser(Form):
     pseudo = SelectField('Pseudonnym', coerce=int)
     password = PasswordField('New Password')
-    is_admin = BooleanField('Give/Keep admin rights')
+    is_admin = BooleanField('Has admin rights')
 
 
 class AddUser(Form):
@@ -63,14 +63,19 @@ class AddFeed(Form):
 
 class ModifyFeed(Form):
     name = SelectField('Name', coerce=int)
-    category = TextField('New Category')
-    regex = TextField('New Regex')
-    strike_url = TextField('New strike API url')
-    kickass_url = TextField('New kickass feed url')
-    is_active = BooleanField('Keep feed active')
-    has_episodes = BooleanField('Still has episodes')
-    has_seasons = BooleanField('Still has seasons')
-    dest = TextField('New mailing list')
+    category = TextField('Category')
+    regex = TextField('Regex')
+    strike_url = TextField('Strike API url')
+    kickass_url = TextField('Kickass feed url')
+    is_active = BooleanField('Active feed')
+    has_episodes = BooleanField('Has episodes')
+    has_seasons = BooleanField('Has seasons')
+    dest = TextField('Mailing list')
+
+
+class RemoveFeed(Form):
+    name = SelectField('Name', coerce=int)
+
 
 class AddRule(Form):
     name = TextField('Name', validators=[InputRequired()])
@@ -80,18 +85,32 @@ class AddRule(Form):
 
 class ModifyRule(Form):
     name = SelectField('Name', coerce=int)
-    is_active = BooleanField('Keep rule active')
+    is_active = BooleanField('Active rule')
+
+
+class RemoveRule(Form):
+    name = SelectField('Name', coerce=int)
 
 
 class AddMailServer(Form):
-    server = TextField('Hostname', validators=[InputRequired()])
+    hostname = TextField('Hostname', validators=[InputRequired()])
     port = IntegerField('Port')
     username = TextField('Username', validators=[InputRequired()])
     password = PasswordField('Password', validators=[InputRequired()])
     sender = TextField('Sender', validators=[InputRequired()])
 
+
+class ModifyMailServer(Form):
+    server   = SelectField('Server', coerce=int)
+    hostname = TextField('Hostname')
+    port     = IntegerField('Port')
+    username = TextField('Username')
+    password = PasswordField('Password')
+    sender   = TextField('Sender')
+
+
 class RemoveMailServer(Form):
-    mail_server = SelectField('Server', coerce=int)
+    server = SelectField('Server', coerce=int)
 
 
 # ------------------------------------------------------------------------------

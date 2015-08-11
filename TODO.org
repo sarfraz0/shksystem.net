@@ -1,0 +1,2 @@
+1) add js script root for js path
+2) add dynamic field completion using id for modification form

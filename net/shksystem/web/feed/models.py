@@ -58,24 +58,33 @@ class User(db.Model):
     def get_id(self):
         return str(self.k)
 
+    def to_dict(self):
+        ret = {}
+        ret['PSEUDO'] = self.pseudo
+        ret['IS_ADMIN'] = self.is_admin
+        return ret
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
 
 class MailServer(db.Model):
     __tablename__ = 'mail_servers'
     k = db.Column(db.Integer, primary_key=True)
-    server = db.Column(db.String, nullable=False)
+    hostname = db.Column(db.String, nullable=False)
     port = db.Column(db.Integer, default=587)
     username = db.Column(db.String, nullable=False)
     sender = db.Column(db.String, nullable=False)
 
-    def __init__(self, server, username, password, sender):
-        self.server = server
+    def __init__(self, hostname, username, password, sender):
+        self.hostname = hostname
         self.username = username
         self.sender = sender
-        keyring.set_password(server, username, password)
+        keyring.set_password(hostname, username, password)
 
     def to_dict(self):
         ret = {}
-        ret['SERVER'] = self.server
+        ret['HOSTNAME'] = self.hostname
         ret['PORT'] = self.port
         ret['USERNAME'] = self.username
         ret['SENDER'] = self.sender
@@ -83,6 +92,7 @@ class MailServer(db.Model):
 
     def to_json(self):
         return json.dumps(self.to_dict())
+
 
 class Feed(db.Model):
     __tablename__ = 'feeds'
@@ -97,7 +107,7 @@ class Feed(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     dest = db.Column(db.String)
     rules = db.relationship('Rule', backref='feed')
-    user_k = db.Column(db.Integer, db.ForeignKey('users.k'))
+    user_k = db.Column(db.Integer, db.ForeignKey('users.k'), nullable=False)
 
     def __init__(self, name, cat, regex, strike_url, kickass_url, user_k,
                  has_episodes=False, has_seasons=False, is_active=True,
@@ -124,10 +134,12 @@ class Feed(db.Model):
         ret['HAS_SEASONS'] = self.has_seasons
         ret['IS_ACTIVE'] = self.is_active
         ret['DEST'] = self.dest
+        ret['USER_K'] = self.user_k
         return ret
 
     def to_json(self):
         return json.dumps(self.to_dict())
+
 
 class Rule(db.Model):
     __tablename__ = 'rules'
@@ -135,12 +147,23 @@ class Rule(db.Model):
     name = db.Column(db.String, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     dlleds = db.relationship('DLLed', backref='rule')
-    feed_k = db.Column(db.Integer, db.ForeignKey('feeds.k'))
+    feed_k = db.Column(db.Integer, db.ForeignKey('feeds.k'), nullable=False)
 
     def __init__(self, name, feed_k, is_active=True):
         self.name = name
         self.is_active = is_active
         self.feed_k = feed_k
+
+    def to_dict(self):
+        ret = {}
+        ret['NAME'] = self.name
+        ret['IS_ACTIVE'] = self.is_active
+        ret['FEED_K'] = self.feed_k
+        return ret
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
 
 class DLLed(db.Model):
     __tablename__ = 'dlleds'

@@ -11,6 +11,14 @@
   </head>
   <body>
 
+    <script type=text/javascript>
+     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+
+    <script src="{{ url_for('static', filename='foundation/js/vendor/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='foundation/js/vendor/modernizr.js') }}"></script>
+    <script src="{{ url_for('static', filename='foundation/js/foundation.min.js') }}"></script>
+
     <nav class="top-bar" data-topbar role="navigation">
       <section class="top-bar-section">
 	<!-- Right Nav Section -->
@@ -58,9 +66,6 @@
 
     {% block content %}{% endblock %}
 
-    <script src="{{ url_for('static', filename='foundation/js/vendor/jquery.js') }}"></script>
-    <script src="{{ url_for('static', filename='foundation/js/vendor/modernizr.js') }}"></script>
-    <script src="{{ url_for('static', filename='foundation/js/foundation.min.js') }}"></script>
     <script>
       $(document).foundation();
     </script>

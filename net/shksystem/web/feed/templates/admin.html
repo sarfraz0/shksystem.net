@@ -5,7 +5,7 @@
 
 <div class="row">
     <div class="large-12 columns">
-        <table>
+        <table align="center" style="margin-top:50px;">
             <tr>
                 <td><strong>Users</strong></td>
                 <td><a href={{ url_for('manage_users', mode='ADD')}}>Add</a></td>
@@ -15,7 +15,7 @@
             <tr>
                 <td><strong>Mail servers</strong></td>
                 <td><a href={{ url_for('manage_mail_servers', mode='ADD')}}>Add</a></td>
-                <td></td>
+                <td><a href={{ url_for('manage_mail_servers', mode='MODIFY')}}>Modify</a></td>
                 <td><a href={{ url_for('manage_mail_servers', mode='REMOVE')}}>Remove</a></td>
             </tr>
 
