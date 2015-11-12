@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='shksystem.net',
-      version='0.1.8.2',
+      version='0.1.8.4',
       author='Sarfraz Kapasi',
       author_email='sarfraz@variablentreprise.com',
       license='GPL-3',
