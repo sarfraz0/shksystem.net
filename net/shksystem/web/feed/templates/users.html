@@ -41,6 +41,17 @@
         </div>
     </div>
 </form>
+
+<script type="text/javascript" charset="utf-8">
+function get_user() {
+  $.getJSON($SCRIPT_ROOT + "/api/ajax/get_user/"+ $("#{{ modify_form.pseudo.id }}").val(),
+      function(data) {
+      $("#{{ modify_form.is_admin.id }}").prop("checked", data.IS_ADMIN);
+    });
+}
+get_user();
+$("#{{ modify_form.pseudo.id }}").change(function(e) { get_user(); });
+</script>
 {% endif %}
 
 {% if mode == 'ADD' %}

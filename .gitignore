@@ -253,3 +253,7 @@ local.properties
 # Debug files
 *.dSYM/
 
+
+### PyCharm ###
+# Project folder
+.idea

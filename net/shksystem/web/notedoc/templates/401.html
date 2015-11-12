@@ -1,0 +1,20 @@
+{% extends 'menu.html' %}
+{% block title %}Unauhorized 401{% endblock %}
+{% block css %}{{ url_for('static', filename='css/401.css') }}{% endblock %}
+{% block content %}
+
+<table align="center">
+  <thead>
+    <tr>
+      <th>Error 401 - Unauthorized</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+        <td><img src="{{ url_for('static', filename='img/Aliaa-Elmahdy-FEMEN.jpg') }}" /></td>
+    </tr>
+  </tbody>
+</table>
+
+
+{% endblock %}

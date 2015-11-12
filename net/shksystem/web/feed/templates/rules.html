@@ -34,6 +34,16 @@
         </div>
     </div>
 </form>
+<script type="text/javascript" charset="utf-8">
+function get_rule() {
+$.getJSON($SCRIPT_ROOT + "/api/ajax/get_rule/"+ $("#{{ modify_form.name.id }}").val(),
+    function(data) {
+    $("#{{ modify_form.is_active.id }}").prop("checked", data.IS_ACTIVE);
+  });
+}
+get_rule();
+$("#{{ modify_form.name.id }}").change(function(e) { get_rule(); });
+</script>
 {% endif %}
 
 {% if mode == 'ADD' %}
@@ -67,6 +77,33 @@
                 <div class="row">
                     <div class="large-3 large-offset-9 columns">
                         <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% if mode == 'REMOVE' %}
+<form action="{{ url_for('manage_rules', mode='REMOVE') }}" method="post">
+    {{ remove_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Remove rule</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ remove_form.name.label }}
+                        {{ remove_form.name }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        <input type="submit" value="Submit" class="button expand">
                     </div>
                 </div>
 

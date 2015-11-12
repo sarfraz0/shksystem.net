@@ -1,0 +1,6 @@
+{
+    "py": "/opt/continuum/anaconda/2.3.0/bin/python",
+    "pip": "/opt/continuum/anaconda/2.3.0/bin/pip",
+    "pkg_name": "shksystem.net",
+    "build_name": "shksystem.net-0.1.8.2-py2-none-any.whl"
+}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block css %}{{ url_for('static', filename='css/login.css') }}{% endblock %}
+{% block content %}
+
+<nav class="top-bar" data-topbar role="navigation">
+  <ul class="title-area">
+    <li class="name">
+      <h1><a href="{{ url_for('index') }}">{{ config['APP_NAME'] }}</a></h1>
+    </li>
+     <!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
+    <li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+  </ul>
+  <section class="top-bar-section">
+    <!-- Right Nav Section -->
+    <ul class="right">
+      <li><a href="#" data-reveal-id="loginMod">Login</a></li>
+    </ul>
+    <!-- Left Nav Section -->
+    <ul class="left">
+    </ul>
+  </section>
+</nav>
+
+<div id="loginMod" class="reveal-modal" data-reveal aria-labelledby="modalTitle" aria-hidden="true" role="dialog">
+  <h2 id="modalTitle">Login</h2>
+  <p class="lead">Your couch.  It is mine.</p>
+  <p>I'm a cool paragraph that lives inside of an even cooler modal. Wins!</p>
+  <a class="close-reveal-modal" aria-label="Close">&#215;</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+{% if category == "info" %}
+<div style="margin-top:1px; margin-bottom:1px; padding-top:1px; padding-bottom:1px;" class="alert-box info rounded">{{ message }}<a href="#" class="close">&times;</a></div>
+{% endif %}
+{% if category == "success" %}
+<div style="margin-top:1px; margin-bottom:1px; padding-top:1px; padding-bottom:1px;" class="alert-box success rounded">{{ message }}<a href="#" class="close">&times;</a></div>
+{% endif %}
+{% if category == "error" %}
+<div style="margin-top:1px; margin-bottom:1px; padding-top:1px; padding-bottom:1px;" class="alert-box error rounded">{{ message }}<a href="#" class="close">&times;</a></div>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+{% endblock %}
