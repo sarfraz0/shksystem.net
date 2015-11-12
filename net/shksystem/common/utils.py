@@ -1,50 +1,40 @@
 # -*- coding: utf-8 -*-
 
-"""
-    OBJET            : Process helpers
-    AUTEUR           : Sarfraz Kapasi
-    DATE DE CREATION : 03.01.2015
-    LICENSE          : GPL-3
-"""
+""" Generic helpers """
 
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
+__author__  = 'Sarfraz Kapasi'
+__license__ = 'GPL-3'
 
 # standard
 import os
 import re
 from datetime import datetime
 from logging import getLogger, Formatter, StreamHandler
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from subprocess import call
-from shutil import move
+from shutil import move, rmtree
 from tempfile import mkstemp
-# installed
-# custom
+from typing import Any, List, Set
 
-# -----------------------------------------------------------------------------
-# Environment/Static variables
-# -----------------------------------------------------------------------------
-# NONE
-# -----------------------------------------------------------------------------
-# Classes and Functions
-# -----------------------------------------------------------------------------
+# Globals
+# =============================================================================
 
 log = getLogger(__name__)
 
+# Classes and Functions
+# =============================================================================
 
-def init_logger(log_path, log_level):
+
+def init_logger(log_path: str, log_level: str) -> Any:
     """ This function add console and file handlers to a Logger object
-        init_logger :: FilePath -> String -> IO Logger
     """
     loggo = getLogger()
     # setting formatter
     formater = Formatter("%(asctime)s %(name)s %(levelname)s - %(message)s",
                          "%d-%m %H:%M")
     # configuring rotation
-    rotate_file_handler = RotatingFileHandler(log_path,
-                                              maxBytes=5000000, backupCount=5)
+    rotate_file_handler = TimedRotatingFileHandler(log_path, when="d",
+                                                   interval=1, backupCount=10)
     rotate_file_handler.setFormatter(formater)
     # adding console output
     console_handler = StreamHandler()
@@ -57,10 +47,9 @@ def init_logger(log_path, log_level):
     return loggo
 
 
-def compile_tex(tex_source_file):
+def compile_tex(tex_source_file: str) -> None:
     """ This function calls pdflatex on LaTEX source file and performs basic
         cleanup afterwards
-        compileTex :: FilePath -> IO ()
     """
     if not os.path.isfile(tex_source_file):
         log.warn('Input file does not exist : %s.', tex_source_file)
@@ -84,22 +73,20 @@ def compile_tex(tex_source_file):
     log.info('Compilation success.')
 
 
-def get_current_timestamp():
+def get_current_timestamp() -> str:
     """ This function gets current date and time with the following
     format: dd/mm/yy:HH:MM
-        get_current_timestamp :: IO String
     """
     ret = datetime.now().isoformat()
     return ret
 
 
-def replace_in_file(fic, patt, subst):
+def replace_in_file(fic: str, patt: str, subst: str) -> None:
     """ This function replaces the string value in the file for the new one
-        replace_in_file :: FilePath -> String -> String -> IO ()
     """
-    nfic = None
-    ofic = None
-    fich = None
+    nfic = None # type: Any
+    ofic = None # type: Any
+    fich = None # type: Any
     try:
         fich, temp_fic = mkstemp()
         nfic = open(temp_fic, 'w')
@@ -117,26 +104,48 @@ def replace_in_file(fic, patt, subst):
         os.close(fich)
 
 
-def remove_existing_fics(list_of_fics):
+def remove_existing_fics(list_of_fics: List[str]) -> None:
     """ This function unlink a list of file given that they exist on filesystem
-        remove_existing_fics :: [FilePath] -- ^ List of files to be removed
-                             -> IO ()
     """
     for path in list_of_fics:
         if os.path.isfile:
             os.unlink(path)
 
+def rmrf(path: str) -> None:
+    """ Remove the path object from filesystem if it exists
+    """
+    if os.path.exists(path):
+        if os.path.isdir(path):
+            rmtree(path)
+        else:
+            os.unlink(path)
 
-def remove_file_duplicates(fic):
+def empty_dir(dirpath: str) -> None:
+    """ Remove the content of a directory
+    """
+    if os.path.isdir(dirpath):
+        rmtree(dirpath)
+        os.makedirs(dirpath)
+
+def filter_empty_dir(dirpath: str, filterlist: List[str]) -> None:
+    """ Remove the content of a directory, leaving only given paths
+    """
+    if os.path.isdir(dirpath):
+        for l in os.listdir(dirpath):
+            if l not in filterlist:
+                rmrf(os.path.join(dirpath, l))
+
+def remove_file_duplicates(fic: str) -> None:
     """ This function recreate a file while removing duplicates lines in it
-        remove_file_duplicates :: FilePath -> IO ()
     """
     if os.path.isfile(fic):
         try:
             fich, tmp_fic = mkstemp()
             in_file = open(fic, 'r')
             out_file = open(tmp_fic, 'w')
-            seen = set()  # fast O(1) amortized lookup
+
+            # fast O(1) amortized lookup
+            seen = set() # type: Set[str]
 
             for line in in_file:
                 if line in seen:
@@ -155,11 +164,9 @@ def remove_file_duplicates(fic):
     else:
         log.error('File to be filtered does not exist : %s.', fic)
 
-
 def intersperse(iterable, delimiter):
     """ This function adds given string between elements of a list
     http://stackoverflow.com/questions/5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
-        intersperse :: [String] -> String -> [String]
     """
     it = iter(iterable)
     yield next(it)
@@ -167,11 +174,9 @@ def intersperse(iterable, delimiter):
         yield delimiter
         yield x
 
-
 def regexify(to_format):
     """ This function try to convert any given string to regex so the pattern
         can be looked up
-        regexify :: String -> String
     """
     ret = ''
     ret = to_format.lower().strip()
@@ -183,5 +188,4 @@ def regexify(to_format):
 
     return ret
 
-# -----------------------------------------------------------------------------
 #

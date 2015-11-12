@@ -23,13 +23,12 @@ from subprocess import call
 cnf = {}
 with open(abspath('deploy.json')) as f:
     cnf = json.load(f)
-pip = join(cnf['bin'], 'pip')
 buildpath = join(abspath('dist'), cnf['build_name'])
 buildirs = ['build', 'dist', '{0}.egg-info'.format(cnf['pkg_name'],)]
-wheel_build = '{0} setup.py bdist_wheel'.format(join(cnf['bin'], 'python'),)
+wheel_build = '{0} setup.py bdist_wheel'.format(cnf['py'],)
 remove_command = 'sudo su - -c \'echo y|{0} uninstall {1}\'' \
-        .format(pip, cnf['pkg_name'])
-install_command = 'sudo su - -c \'{0} install {1}\''.format(pip, buildpath)
+        .format(cnf['pip'], cnf['pkg_name'])
+install_command = 'sudo su - -c \'{0} install {1}\''.format(cnf['pip'], buildpath)
 
 
 # Classes and functions
@@ -43,10 +42,10 @@ def cleanup():
 def main():
     cleanup()
     b_ret = call([wheel_build], shell=True)
-    if b_ret == 0:
-        call([remove_command], shell=True)
-        call([install_command], shell=True)
-        cleanup()
+    #if b_ret == 0:
+    #    call([remove_command], shell=True)
+    #    call([install_command], shell=True)
+    #    cleanup()
 
 # ---------------------------------------
 

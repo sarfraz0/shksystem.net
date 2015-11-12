@@ -1,0 +1,24 @@
+{% extends 'menu.html' %}
+{% block title %}Product{% endblock %}
+{% block css %}{{ url_for('static', filename='css/product.css') }}{% endblock %}
+{% block content %}
+
+<div class="row">
+    <div class="large-12 columns">
+        <table align="center" style="margin-top:50px;">
+            <tr>
+                <td><strong>Products</strong></td>
+                <td><a href={{ url_for('manage_products', mode='ADD')}}>Add</a></td>
+                <td><a href={{ url_for('manage_products', mode='MODIFY')}}>Modify</a></td>
+                <td><a href={{ url_for('manage_products', mode='REMOVE')}}>Remove</a></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="large-12 columns">
+    </div>
+</div>
+
+{% endblock %}
