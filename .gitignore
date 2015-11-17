@@ -1,4 +1,59 @@
-# https://www.gitignore.io
+### Logs and Backups ###
+*.out
+*.err
+*.log
+*.bk
+*.bak
+*.tmp
+*.temp
+*.dmp
+*.dump
+*.cache
+*.swp
+
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+
+### Linux ###
+*~
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+
+### Windows ###
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
 
 ### Java ###
 *.class
@@ -7,7 +62,7 @@
 .mtj.tmp/
 
 # Package Files #
-*.jar
+#*.jar
 *.war
 *.ear
 
@@ -19,9 +74,7 @@ hs_err_pid*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-
-# C extensions
-*.so
+*$py.class
 
 # Distribution / packaging
 .Python
@@ -65,89 +118,49 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-
 # Sphinx documentation
 docs/_build/
 
-# PyBuilder
-target/
 
+### C/C++ ###
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+*.slo
+*.lo
 
-### Windows ###
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# Precompiled Headers
+*.gch
+*.pch
 
-# Folder config file
-Desktop.ini
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+*.lai
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
 
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
+# Fortran module files
+*.mod
 
-# Windows shortcuts
-*.lnk
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
 
-
-### Linux ###
-*~
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-
-### Vim ###
-[._]*.s[a-w][a-z]
-[._]s[a-w][a-z]
-*.un~
-Session.vim
-.netrwhist
-*~
-
-
-### Emacs ###
-# -*- mode: gitignore; -*-
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# Org-mode
-.org-id-locations
-*_archive
-
-# flymake-mode
-*_flymake.*
-
-# eshell files
-/eshell/history
-/eshell/lastdir
-
-# elpa packages
-/elpa/
-
-# reftex files
-*.rel
-
-# AUCTeX auto folder
-/auto/
-
-# cask packages
-.cask/
+# Debug files
+*.dSYM/
 
 
 ### Eclipse ###
@@ -156,9 +169,6 @@ tramp
 .gradle
 bin/
 tmp/
-*.tmp
-*.bak
-*.swp
 *~.nib
 local.properties
 .settings/
@@ -179,6 +189,9 @@ local.properties
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
+# Java annotation processor (APT)
+.factorypath
+
 # PDT-specific
 .buildpath
 
@@ -189,11 +202,19 @@ local.properties
 .texlipse
 
 
+### Vim ###
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+
 ### Archives ###
 # It's better to unpack these files and commit the raw source because
 # git has its own built in compression methods.
 *.7z
-*.jar
 *.rar
 *.zip
 *.gz
@@ -201,7 +222,6 @@ local.properties
 *.bz2
 *.xz
 *.lzma
-*.cab
 
 #packing-only formats
 *.iso
@@ -211,49 +231,5 @@ local.properties
 *.dmg
 *.xpi
 *.gem
-*.egg
 *.deb
 *.rpm
-*.msi
-*.msm
-*.msp
-
-
-### C ###
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-
-
-### PyCharm ###
-# Project folder
-.idea

@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-""""
-    AUTHOR           : Sarfraz Kapasi
-    LICENSE          : GPL-3
-"""
+__author__  = 'Sarfraz Kapasi'
+__license__ = 'GPL-3'
 
 # standard
 import logging
@@ -22,7 +20,7 @@ from net.shksystem.web.fsend.forms import LoginForm, RemoveUser, AddUser, \
     ModifyUser, AddMailServer, RemoveMailServer, ModifyMailServer
 
 # Globals
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +46,7 @@ def verify_password(username: str, password: str) -> bool:
     return ret
 
 # Classes and Functions
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 def get_checkbox(key: str) -> bool:
     return (request.form.get(key, 'n') == 'y')
@@ -58,7 +56,7 @@ def unauthorized(error: int) -> Tuple[str, int]:
     return render_template('401.html'), 401
 
 # Routes
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 ### Default
 
@@ -276,5 +274,19 @@ def get_user(user_k: int) -> str:
 
 ### Custom
 
-# -----------------------------------------------------------------------------
+@app.route('/profile', methods=['GET'])
+def profile():
+    ret = render_template('profile.html')
+    return ret
+
+@app.route('/batch', methods=['GET'])
+def batch():
+    ret = render_template('batch.html')
+    return ret
+
+@app.route('/liste', methods=['GET'])
+def liste():
+    ret = render_template('liste.html')
+    return ret
+
 #

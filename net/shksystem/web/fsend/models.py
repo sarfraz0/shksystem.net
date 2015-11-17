@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-""""
-    AUTHOR           : Sarfraz Kapasi
-    LICENSE          : GPL-3
-"""
+__author__  = 'Sarfraz Kapasi'
+__license__ = 'GPL-3'
 
 # standard
 import os
@@ -14,12 +12,12 @@ from passlib.hash import sha512_crypt
 from flask.ext.sqlalchemy import SQLAlchemy
 
 # Globals
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 db = SQLAlchemy()
 
 # Classes and Functions
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 
 class User(db.Model):
@@ -30,6 +28,7 @@ class User(db.Model):
     passwhash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_manager = db.Column(db.Boolean, default=False)
+
 
     def __init__(self, pseudo, passw, is_admin=False, is_manager=False):
         self.pseudo = pseudo
@@ -86,5 +85,45 @@ class MailServer(db.Model):
         return json.dumps(self.to_dict())
 
 
-# -----------------------------------------------------------------------------
+class Persona(db.Model):
+    __tablename__ = 'personas'
+    k = db.Column(db.Integer, primary_key=True)
+
+
+class UserMailServer(db.Model):
+    __tablename__ = 'user_mail_servers'
+    k = db.Column(db.Integer, primary_key=True)
+    hostname = db.Column(db.String, nullable=False)
+    port = db.Column(db.Integer, default=587)
+    username = db.Column(db.String, nullable=False)
+    sender = db.Column(db.String, nullable=False)
+
+    def __init__(self, hostname, username, password, sender):
+        self.hostname = hostname
+        self.username = username
+        self.sender = sender
+        keyring.set_password(hostname, username, password)
+
+    def to_dict(self):
+        ret = {}
+        ret['HOSTNAME'] = self.hostname
+        ret['PORT'] = self.port
+        ret['USERNAME'] = self.username
+        ret['SENDER'] = self.sender
+        return ret
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+
+class Corporation(db.Model):
+    __tablename__ = 'corporations'
+    k = db.Column(db.Integer, primary_key=True)
+
+
+class Grunt(db.Model):
+    __tablename__ = 'grunts'
+    k = db.Column(db.Integer, primary_key=True)
+
+
 #

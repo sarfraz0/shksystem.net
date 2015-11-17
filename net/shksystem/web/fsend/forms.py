@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-""""
-    AUTEUR  : Sarfraz Kapasi
-    LICENSE : GPL-3
-"""
+__author__  = 'Sarfraz Kapasi'
+__license__ = 'GPL-3'
 
 # installed
 from flask_wtf import Form

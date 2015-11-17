@@ -142,3 +142,8 @@
     + cloturing feature branch as it lost its purpose
 * 0.1.8.4
     + cleanup of develop branch
+* 0.1.8.5
+    + added fsend
+    + changed login form
+    + added menu entries
+    + updated gitignore from edited gitignore.io one

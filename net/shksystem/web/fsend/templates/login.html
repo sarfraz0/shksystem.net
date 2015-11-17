@@ -22,10 +22,42 @@
   </section>
 </nav>
 
-<div id="loginMod" class="reveal-modal" data-reveal aria-labelledby="modalTitle" aria-hidden="true" role="dialog">
-  <h2 id="modalTitle">Login</h2>
-  <p class="lead">Your couch.  It is mine.</p>
-  <p>I'm a cool paragraph that lives inside of an even cooler modal. Wins!</p>
+<div id="loginMod" class="reveal-modal tiny" data-reveal aria-hidden="true" role="dialog">
+
+    <div class="center row">
+        <div class="row">
+            <div class="large-12 columns">
+                <form action="{{ url_for('login') }}" method="post">
+                    <fieldset>
+                        <legend>Login</legend>
+                        {{ login_form.hidden_tag() }}
+                        <div class="row collapse">
+                            <div class="small-2 columns">
+                                <span class="prefix"><i class="fi-torso"></i></span>
+                            </div>
+                            <div class="small-10  columns">
+                                {{ login_form.pseudo }}
+                            </div>
+                        </div>
+                        <div class="row collapse">
+                            <div class="small-2 columns ">
+                                <span class="prefix"><i class="fi-lock"></i></span>
+                            </div>
+                            <div class="small-10 columns ">
+                                {{ login_form.password }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="small-12 columns">
+                                <input type="submit" value="Submit" class="button expand">
+                            </div>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </div>
+
   <a class="close-reveal-modal" aria-label="Close">&#215;</a>
 </div>
 
