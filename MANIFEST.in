@@ -1,9 +1,0 @@
-include net/shksystem/web/feed/templates/*
-include net/shksystem/web/feed/static/css/*
-include net/shksystem/web/feed/static/img/*
-include net/shksystem/web/feed/static/js/*
-include net/shksystem/web/feed/static/foundation/js/*
-include net/shksystem/web/feed/static/foundation/js/foundation/*
-include net/shksystem/web/feed/static/foundation/js/vendor/*
-include net/shksystem/web/feed/static/foundation/css/*
-

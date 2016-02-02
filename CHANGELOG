@@ -147,3 +147,7 @@
     + changed login form
     + added menu entries
     + updated gitignore from edited gitignore.io one
+* 0.1.9.1
+    + trimmed down to only budget project
+    + new api based model
+    + compatible with pypy

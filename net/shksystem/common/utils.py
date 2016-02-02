@@ -14,7 +14,6 @@ from logging.handlers import TimedRotatingFileHandler
 from subprocess import call
 from shutil import move, rmtree
 from tempfile import mkstemp
-from typing import Any, List, Set
 
 # Globals
 # =============================================================================
@@ -24,9 +23,11 @@ log = getLogger(__name__)
 # Classes and Functions
 # =============================================================================
 
-
-def init_logger(log_path: str, log_level: str) -> Any:
-    """ This function add console and file handlers to a Logger object
+def init_logger(log_path, log_level):
+    """
+        init_logger :: FilePath -> Int -> RootLogger
+        ============================================
+        This function add console and file handlers to a Logger object
     """
     loggo = getLogger()
     # setting formatter
@@ -46,10 +47,11 @@ def init_logger(log_path: str, log_level: str) -> Any:
 
     return loggo
 
-
-def compile_tex(tex_source_file: str) -> None:
-    """ This function calls pdflatex on LaTEX source file and performs basic
-        cleanup afterwards
+def compile_tex(tex_source_file):
+    """
+        compile_tex :: FilePath -> IO ()
+        ================================
+        This function calls pdflatex on LaTEX file and performs cleanup afterwards
     """
     if not os.path.isfile(tex_source_file):
         log.warn('Input file does not exist : %s.', tex_source_file)
@@ -72,17 +74,20 @@ def compile_tex(tex_source_file: str) -> None:
 
     log.info('Compilation success.')
 
-
-def get_current_timestamp() -> str:
-    """ This function gets current date and time with the following
-    format: dd/mm/yy:HH:MM
+def get_current_timestamp():
+    """
+        get_current_timestamp :: IO String
+        ==================================
+        This function gets current date and time with the ISO format: dd/mm/yy:HH:MM
     """
     ret = datetime.now().isoformat()
     return ret
 
-
-def replace_in_file(fic: str, patt: str, subst: str) -> None:
-    """ This function replaces the string value in the file for the new one
+def replace_in_file(fic, patt, subst):
+    """
+        replace_in_file :: FilePath -> String -> String -> IO ()
+        ========================================================
+        This function replaces the string value in the file for the new one
     """
     nfic = None # type: Any
     ofic = None # type: Any
@@ -103,16 +108,21 @@ def replace_in_file(fic: str, patt: str, subst: str) -> None:
         ofic.close()
         os.close(fich)
 
-
-def remove_existing_fics(list_of_fics: List[str]) -> None:
-    """ This function unlink a list of file given that they exist on filesystem
+def remove_existing_fics(list_of_fics):
+    """
+        remove_existing_fics :: [FilePath] -> IO ()
+        ===========================================
+        This function unlink a list of file given that they exist on filesystem
     """
     for path in list_of_fics:
         if os.path.isfile:
             os.unlink(path)
 
-def rmrf(path: str) -> None:
-    """ Remove the path object from filesystem if it exists
+def rmrf(path):
+    """
+        rmrf :: FilePath -> IO ()
+        =========================
+        Remove the path object from filesystem if it exists
     """
     if os.path.exists(path):
         if os.path.isdir(path):
@@ -120,23 +130,32 @@ def rmrf(path: str) -> None:
         else:
             os.unlink(path)
 
-def empty_dir(dirpath: str) -> None:
-    """ Remove the content of a directory
+def empty_dir(dirpath):
+    """
+        empty_dir :: FilePath -> IO ()
+        ==============================
+        Remove the content of a directory
     """
     if os.path.isdir(dirpath):
         rmtree(dirpath)
         os.makedirs(dirpath)
 
-def filter_empty_dir(dirpath: str, filterlist: List[str]) -> None:
-    """ Remove the content of a directory, leaving only given paths
+def filter_empty_dir(dirpath, filterlist):
+    """
+        filter_empty_dir :: FilePath -> [FilePath] -> IO ()
+        ===================================================
+        Remove the content of a directory, leaving only given paths
     """
     if os.path.isdir(dirpath):
         for l in os.listdir(dirpath):
             if l not in filterlist:
                 rmrf(os.path.join(dirpath, l))
 
-def remove_file_duplicates(fic: str) -> None:
-    """ This function recreate a file while removing duplicates lines in it
+def remove_file_duplicates(fic):
+    """
+        remove_file_duplicates :: FilePath -> IO ()
+        ===========================================
+        This function recreate a file while removing duplicates lines in it
     """
     if os.path.isfile(fic):
         try:
@@ -165,27 +184,15 @@ def remove_file_duplicates(fic: str) -> None:
         log.error('File to be filtered does not exist : %s.', fic)
 
 def intersperse(iterable, delimiter):
-    """ This function adds given string between elements of a list
-    http://stackoverflow.com/questions/5655708/python-most-elegant-way-to-intersperse-a-list-with-an-element
+    """ intersperse :: [a] -> a -> [a]
+        ==============================
+        This function adds given string between elements of a list
+        http://stackoverflow.com/questions/5655708
     """
     it = iter(iterable)
     yield next(it)
     for x in it:
         yield delimiter
         yield x
-
-def regexify(to_format):
-    """ This function try to convert any given string to regex so the pattern
-        can be looked up
-    """
-    ret = ''
-    ret = to_format.lower().strip()
-    for c in ['-', '_']:
-        ret = ret.replace(c, '.*')
-    ret = ''.join(intersperse(ret.split(' '), '.*'))
-    ret = ret.translate(dict.fromkeys(map(ord, '!?'), None))
-    ret = '^.*' + ret + '.*$'
-
-    return ret
 
 #
