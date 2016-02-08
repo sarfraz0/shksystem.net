@@ -151,3 +151,7 @@
     + trimmed down to only budget project
     + new api based model
     + compatible with pypy
+* 0.1.9.2
+    + added put and delete for budget
+* 0.1.9.3
+    + added put and delete coroutine for users api in budget

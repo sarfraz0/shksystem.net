@@ -264,12 +264,56 @@ class UserHandler(BaseHandler):
 
         self.respond(ret, ret_code)
 
+    @tornado.gen.coroutine
     def put(self):
-        pass
+        ret = {}
+        ret_code = 200
+        try:
+            usercid = self.get_argument('userid')
+            email = self.get_argument('email', default=None)
+            password = self.get_argument('password')
 
+            ret = yield self.update_user(usercid, password, self.p_id, email)
+            if 'status_code' in ret:
+                ret_code = ret['status_code']
+
+        except tornado.web.MissingArgumentError as e:
+            ret = {
+                    'status_code': 400
+                  , 'message': 'post form is missing required data'
+                  }
+
+        self.respond(ret, ret_code)
+
+    @tornado.gen.coroutine
     def delete(self):
-        pass
+        ret = {}
+        ret_code = 200
+        try:
+            usercid = self.get_argument('userid')
+            if usercid.isdigit():
+                cast_usercid = int(usercid)
+                us = yield self.get_user_by_cid(cast_usercid)
+                if us is not None:
+                    self.ormdb.delete(us)
+                    self.ormdb.commit()
+                else:
+                    ret = {
+                            'status_code': 404
+                          , 'message': 'cant get user object from given userid'
+                          }
+            else:
+                ret = {
+                        'status_code': 400
+                      , 'message': 'userid parameter must be a positive integer'
+                      }
+        except tornado.web.MissingArgumentError as e:
+            ret = {
+                    'status_code': 400
+                  , 'message': 'parameter userid must be provided'
+                  }
 
+        self.respond(ret, ret_code)
 
 def run_api(database_url, port=8180, debug=False):
     app = Application(database_url)
