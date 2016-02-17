@@ -155,3 +155,6 @@
     + added put and delete for budget
 * 0.1.9.3
     + added put and delete coroutine for users api in budget
+* 0.1.9.4
+    + modified code to add put and delete for users
+    + refractored to use name instead of cid

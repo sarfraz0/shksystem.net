@@ -118,7 +118,7 @@ class ReleaseFrame(object):
             #             mail['DEST'].split(','))
         return added
 
-    def range_rule(self, cat, name, dl_dir, release_dir):
+   : def range_rule(self, cat, name, dl_dir, release_dir):
         r = regexify(name)
         for fic in os.listdir(dl_dir):
             if re.match(r, fic):

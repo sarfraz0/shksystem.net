@@ -20,6 +20,7 @@ import tornado.web
 #import psycopg2
 #import momoko
 import keyring
+from passlib.hash import sha512_crypt
 # custom
 from net.shksystem.db.budget import Base, User, Status, Role
 
@@ -38,7 +39,10 @@ class Application(tornado.web.Application):
 
     def __init__(self, database_url):
         handlers = [
-                     (r"/api/v1/users?", UserHandler)
+                     (r'/api/v1/token', TokenHandler)
+                   , (r'/api/v1/roles', RoleHandler)
+                   , (r'/api/v1/statuses' StatusHandler)
+                   , (r'/api/v1/users', UserHandler)
                    ]
         tornado.web.Application.__init__(self, handlers)
         self.ormdb = scoped_session(
@@ -69,13 +73,41 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class TokenHandler(BaseHandler):
+
+    def get(self):
+        pass
+
+
+class RoleHandler(BaseHandler):
+
+    def get(self):
+        ret = {}
+        ret_code = 200
+        roles = self.ormdb.query(Role).all()
+        for r in roles:
+            ret[ret.cid] = ret.name
+        self.respond(ret, ret_code)
+
+
+class StatusHandler(BaseHandler):
+
+    def get(self):
+        ret = {}
+        ret_code = 200
+        roles = self.ormdb.query(Status).all()
+        for r in roles:
+            ret[ret.cid] = ret.name
+        self.respond(ret, ret_code)
+
+
 class UserHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     def initialize(self):
-        self.p_id = self.ormdb.query(Status) \
-                              .filter_by(name='pending').first().cid
+        self.d_status = self.ormdb.query(Status) \
+                                  .filter_by(name='pending').first()
         self.d_role = self.ormdb.query(Role) \
                                 .filter_by(name='user').first()
 
@@ -88,11 +120,15 @@ class UserHandler(BaseHandler):
            self,
            pseudo,
            password,
-           init_status_cid,
+           status,
+           roles=None,
            email=None
         ):
         ret = {}
-        usr = User(pseudo, password, init_status_cid)
+        usr = User(pseudo, password, status)
+        if roles is not None:
+            for role in roles:
+                usr.roles.append(role)
         if email is not None:
             usr.email = email
         try:
@@ -115,6 +151,53 @@ class UserHandler(BaseHandler):
             ret = {
                     'status_code': 400
                   , 'message': 'user already exist'
+                  }
+        return ret
+
+    @run_on_executor
+    def update_user(
+           self,
+           usercid,
+           password=None,
+           statuscid=None,
+           roles_cid_list=None,
+           email=None
+        ):
+        """
+            update_user :: Self
+                        -> Int
+                        -> Maybe String
+                        -> Maybe Int
+                        -> Maybe [Int]
+                        -> Maybe String
+                        -> IO Map String String
+            ===================================
+            This function updates an user object in database
+        """
+        ret = {}
+
+        try:
+            usr = self.ormdb.query(User).get(usercid)
+
+            if password is not None:
+                usr.passwhash = sha512_crypt.encrypt(password)
+            if statuscid is not None:
+                usr.status = self.ormdb.query(Status).get(statuscid)
+            if roles_cid_list is not None:
+                for role_cid in roles_cid_list:
+                    current_role = self.ormdb.query(Role).get(role_cid)
+                    if current_role not in usr.roles:
+                        usr.roles.append(current_role)
+
+            ret = {
+                    'updated_usr_id': usr.cid
+                  , 'updated_usr': usr.to_dict()
+                  }
+            self.ormdb.commit()
+        except Exception as e:
+            ret = {
+                    'status_code': 400
+                  , 'message': 'user could not be updated'
                   }
         return ret
 
@@ -244,7 +327,9 @@ class UserHandler(BaseHandler):
             email = self.get_argument('email', default=None)
             password = self.get_argument('password')
 
-            ret = yield self.create_user(pseudo, password, self.p_id, email)
+            d_status = self.d_status
+            d_roles = [self.d_role]
+            ret = yield self.create_user(pseudo, password, d_status, d_roles, email)
             if 'status_code' in ret:
                 ret_code = ret['status_code']
 
@@ -269,18 +354,37 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            usercid = self.get_argument('userid')
-            email = self.get_argument('email', default=None)
-            password = self.get_argument('password')
+            usercid    = self.get_argument('userid')
+            email      = self.get_argument('email',     default=None)
+            password   = self.get_argument('password',  default=None)
+            status_cid = self.get_argument('status_id', default=None)
+            roles_cid  = self.get_argument('roles_id',  default=None)
 
-            ret = yield self.update_user(usercid, password, self.p_id, email)
+            cast_status_cid = None
+            if status_cid.isdigit():
+                cast_status_cid = int(status_cid)
+
+            roles_cid_list = None
+            if roles_cid is not None:
+                roles_cid_list_str = filter(lambda x: x != '', roles_cid.split(';'))
+                roles_cid_isint = all(map(lambda x: x.isdigit(), roles_cid_list_str))
+                if roles_cid_isint:
+                    roles_cid_list = map(int, roles_cid_list_str)
+
+            ret = yield self.update_user(
+                                usercid,
+                                password,
+                                cast_status_cid,
+                                roles_cid_list,
+                                email
+                             )
             if 'status_code' in ret:
                 ret_code = ret['status_code']
 
         except tornado.web.MissingArgumentError as e:
             ret = {
                     'status_code': 400
-                  , 'message': 'post form is missing required data'
+                  , 'message': 'put form is missing required data'
                   }
 
         self.respond(ret, ret_code)
@@ -300,7 +404,7 @@ class UserHandler(BaseHandler):
                 else:
                     ret = {
                             'status_code': 404
-                          , 'message': 'cant get user object from given userid'
+                          , 'message': 'cant delete user object from given userid'
                           }
             else:
                 ret = {

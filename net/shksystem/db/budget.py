@@ -70,10 +70,10 @@ class User(Base):
     status_cid   = Column(Integer, ForeignKey('statuses.cid'))
     mail_servers = relationship('MailServer', backref='user')
 
-    def __init__(self, pseudo, passw, status_cid):
+    def __init__(self, pseudo, passw, status):
         self.pseudo     = pseudo
         self.passwhash  = sha512_crypt.encrypt(passw)
-        self.status_cid = status_cid
+        self.status     = status
 
     def is_active(self):
         return True
