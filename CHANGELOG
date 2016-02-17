@@ -158,3 +158,5 @@
 * 0.1.9.4
     + modified code to add put and delete for users
     + refractored to use name instead of cid
+* 0.1.9.5
+    + began to remove userid calls to use words instead of int in api calls
