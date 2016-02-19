@@ -167,9 +167,9 @@ def populate_db(easy_connect):
     admin_rol   = session.query(Role).filter_by(name='admin').first()
     guest_rol   = session.query(Role).filter_by(name='guest').first()
 
-    administrator = User('admin', 'nimba', active_stat.cid)
+    administrator = User('admin', 'nimba', active_stat)
     administrator.roles.append(admin_rol)
-    guest = User('guest', 'guest', active_stat.cid)
+    guest = User('guest', 'guest', active_stat)
     guest.roles.append(guest_rol)
     session.add_all([administrator, guest])
     session.commit()

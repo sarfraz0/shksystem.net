@@ -8,7 +8,6 @@ __license__ = 'GPL-3'
 import os
 import logging
 import json
-#from pprint import pprint
 # installed
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -17,8 +16,6 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado import gen, autoreload
 from tornado.ioloop import IOLoop
 import tornado.web
-#import psycopg2
-#import momoko
 import keyring
 from passlib.hash import sha512_crypt
 # custom
@@ -101,10 +98,6 @@ class UserHandler(BaseHandler):
                                 .filter_by(name='user').first()
 
     @run_on_executor
-    def get_user_by_name(self, name):
-        return self.ormdb.query(User).filter_by(pseudo=name).first()
-
-    @run_on_executor
     def create_user(
            self,
            pseudo,
@@ -129,9 +122,11 @@ class UserHandler(BaseHandler):
                   }
             self.ormdb.commit()
         except Exception as e:
+            logger.exception('user already exists')
+            ret_code = 400
             ret = {
-                    'status_code': 400
-                  , 'message': 'user already exist'
+                    'status_code': ret_code
+                  , 'message': 'user already exists'
                   }
         return ret
 
@@ -157,39 +152,34 @@ class UserHandler(BaseHandler):
         """
         ret = {}
 
-        if usercid.isdigit():
-            usr = self.ormdb.query(User).get(int(usercid))
-            if usr is not None:
-                try:
-                    if password is not None:
-                        usr.passwhash = sha512_crypt.encrypt(password)
-                    if statuscid is not None:
-                        usr.status = self.ormdb.query(Status).get(statuscid)
-                    if roles_cid_list is not None:
-                        for role_cid in roles_cid_list:
-                            current_role = self.ormdb.query(Role).get(role_cid)
-                            if current_role not in usr.roles:
-                                usr.roles.append(current_role)
+        usr = self.ormdb.query(User).filter_by(pseudo=pseudo).first()
+        if usr is not None:
+            try:
+                if password is not None:
+                    usr.passwhash = sha512_crypt.encrypt(password)
+                if status_name is not None:
+                    usr.status = self.ormdb.query(Status).filter_by(name=status_name).first()
+                if roles_list is not None:
+                    for role_name in roles_list:
+                        current_role = self.ormdb.query(Role).filter_by(name=role_name).first()
+                        if current_role not in usr.roles:
+                            usr.roles.append(current_role)
 
-                    ret = {
-                            'updated_usr_id': usr.cid
-                          , 'updated_usr': usr.to_dict()
-                          }
-                    self.ormdb.commit()
-                except Exception as e:
-                    ret = {
-                            'status_code': 400
-                          , 'message': 'user could not be updated'
-                          }
-            else:
                 ret = {
-                        'status_code': 404
-                      , 'message': 'user does not exist'
+                        'updated_usr_id': usr.cid
+                      , 'updated_usr': usr.to_dict()
+                      }
+                self.ormdb.commit()
+            except Exception as e:
+                logger.exception('user could not be updated')
+                ret = {
+                        'status_code': 400
+                      , 'message': 'user could not be updated'
                       }
         else:
             ret = {
                     'status_code': 404
-                  , 'message': 'userid must be valid'
+                  , 'message': 'user does not exist'
                   }
 
         return ret
@@ -200,18 +190,20 @@ class UserHandler(BaseHandler):
         ret_code = 200
         try:
             pseudo = self.get_argument('pseudo')
-            us = yield self.get_user_by_name(pseudo)
+            us = self.ormdb.query(User).filter_by(pseudo=pseudo).first()
             if us is not None:
                 ret = us.to_dict()
             else:
+                ret_code = 404
                 ret = {
-                        'status_code': 404
-                      , 'message': 'cant get user object from given pseudo'
+                        'status_code': ret_code
+                      , 'message': 'inexistant user object for given pseudo'
                       }
         except tornado.web.MissingArgumentError as e:
+            ret_code = 400
             ret = {
-                    'status_code': 400
-                  , 'message': 'parameter pseudo must be provided'
+                    'status_code': ret_code
+                  , 'message': 'valid pseudo parameter must be provided'
                   }
         self.respond(ret, ret_code)
 
@@ -220,8 +212,8 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            pseudo = self.get_argument('pseudo')
-            email = self.get_argument('email', default=None)
+            pseudo   = self.get_argument('pseudo')
+            email    = self.get_argument('email', default=None)
             password = self.get_argument('password')
 
             d_status = self.d_status
@@ -231,8 +223,9 @@ class UserHandler(BaseHandler):
                 ret_code = ret['status_code']
 
         except tornado.web.MissingArgumentError as e:
+            ret_code = 400
             ret = {
-                    'status_code': 400
+                    'status_code': ret_code
                   , 'message': 'post form is missing required data'
                   }
 
@@ -300,6 +293,7 @@ class UserHandler(BaseHandler):
                   }
 
         self.respond(ret, ret_code)
+
 
 def run_api(database_url, port=8180, debug=False):
     app = Application(database_url)

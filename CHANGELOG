@@ -160,3 +160,6 @@
     + refractored to use name instead of cid
 * 0.1.9.5
     + began to remove userid calls to use words instead of int in api calls
+* 0.1.9.6
+	+ halfway at removing userid
+	+ added some debug for test and http return code
