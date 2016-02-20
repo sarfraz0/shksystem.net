@@ -9,7 +9,7 @@ import os
 import logging
 import json
 # installed
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, exc
 from sqlalchemy.orm import scoped_session, sessionmaker
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
@@ -91,49 +91,53 @@ class UserHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    def initialize(self):
-        self.d_status = self.ormdb.query(Status) \
-                                  .filter_by(name='pending').first()
-        self.d_role = self.ormdb.query(Role) \
-                                .filter_by(name='user').first()
-
     @run_on_executor
     def create_user(
            self,
-           pseudo,
+           username,
            password,
-           status,
-           roles=None,
            email=None
         ):
         ret = {}
-        usr = User(pseudo, password, status)
-        if roles is not None:
-            for role in roles:
-                usr.roles.append(role)
+
+        d_status = self.ormdb.query(Status).filter_by(name='pending').first()
+        usr = User(username, password, d_status)
+
+        d_role = self.ormdb.query(Role).filter_by(name='user').first()
+        usr.roles.append(d_role)
+
         if email is not None:
             usr.email = email
+
         try:
             self.ormdb.add(usr)
             self.ormdb.flush()
             ret = {
-                    'new_usr_id': usr.cid
+                    'status_code': ret_code
+                  , 'new_usr_id': usr.cid
                   , 'new_usr': usr.to_dict()
                   }
             self.ormdb.commit()
-        except Exception as e:
-            logger.exception('user already exists')
+        except exc.IntegrityError as e:
             ret_code = 400
             ret = {
                     'status_code': ret_code
                   , 'message': 'user already exists'
                   }
+        except Exception as e:
+            logger.exception('user already exists')
+            ret_code = 400
+            ret = {
+                    'status_code': ret_code
+                  , 'message': 'Unhandled Exception'
+                  }
+
         return ret
 
     @run_on_executor
     def update_user(
            self,
-           pseudo,
+           username,
            password=None,
            status_name=None,
            roles_list=None,
@@ -151,22 +155,30 @@ class UserHandler(BaseHandler):
             This function updates an user object in database
         """
         ret = {}
-
-        usr = self.ormdb.query(User).filter_by(pseudo=pseudo).first()
+        usr = self.ormdb.query(User).filter_by(pseudo=username).first()
         if usr is not None:
             try:
                 if password is not None:
                     usr.passwhash = sha512_crypt.encrypt(password)
+
                 if status_name is not None:
-                    usr.status = self.ormdb.query(Status).filter_by(name=status_name).first()
+                    c_stat = self.ormdb.query(Status) \
+                                       .filter_by(name=status_name).first()
+                    if c_stat is not None:
+                        usr.status = c_stat
+
+                t_roles = []
                 if roles_list is not None:
                     for role_name in roles_list:
-                        current_role = self.ormdb.query(Role).filter_by(name=role_name).first()
-                        if current_role not in usr.roles:
-                            usr.roles.append(current_role)
+                        c_role = self.ormdb.query(Role) \
+                                           .filter_by(name=role_name).first()
+                        if c_role is not None:
+                            t_roles.append(c_role)
+                    usr.roles = t_roles
 
                 ret = {
-                        'updated_usr_id': usr.cid
+                        'status_code': ret_code
+                      , 'updated_usr_id': usr.cid
                       , 'updated_usr': usr.to_dict()
                       }
                 self.ormdb.commit()
@@ -181,7 +193,6 @@ class UserHandler(BaseHandler):
                     'status_code': 404
                   , 'message': 'user does not exist'
                   }
-
         return ret
 
     @tornado.gen.coroutine
@@ -189,8 +200,8 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            pseudo = self.get_argument('pseudo')
-            us = self.ormdb.query(User).filter_by(pseudo=pseudo).first()
+            username = self.get_argument('pseudo')
+            us = self.ormdb.query(User).filter_by(pseudo=username).first()
             if us is not None:
                 ret = us.to_dict()
             else:
@@ -212,13 +223,11 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            pseudo   = self.get_argument('pseudo')
+            username = self.get_argument('pseudo')
             email    = self.get_argument('email', default=None)
             password = self.get_argument('password')
 
-            d_status = self.d_status
-            d_roles = [self.d_role]
-            ret = yield self.create_user(pseudo, password, d_status, d_roles, email)
+            ret = yield self.create_user(username, password, email)
             if 'status_code' in ret:
                 ret_code = ret['status_code']
 
@@ -236,7 +245,7 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            pseudo          = self.get_argument('pseudo')
+            username        = self.get_argument('pseudo')
             email           = self.get_argument('email',    default=None)
             password        = self.get_argument('password', default=None)
             status_name     = self.get_argument('status',   default=None)
@@ -247,7 +256,7 @@ class UserHandler(BaseHandler):
                 roles_list= filter(lambda x: x != '', raw_roles_list.split(';'))
 
             ret = yield self.update_user(
-                                pseudo,
+                                username,
                                 password,
                                 status_name,
                                 roles_list,
@@ -257,8 +266,9 @@ class UserHandler(BaseHandler):
                 ret_code = ret['status_code']
 
         except tornado.web.MissingArgumentError as e:
+            ret_code = 400
             ret = {
-                    'status_code': 400
+                    'status_code': ret_code
                   , 'message': 'put form is missing required data'
                   }
 
@@ -269,27 +279,24 @@ class UserHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            usercid = self.get_argument('userid')
-            if usercid.isdigit():
-                cast_usercid = int(usercid)
-                us = self.ormdb.query(User).get(cast_usercid)
-                if us is not None:
-                    self.ormdb.delete(us)
-                    self.ormdb.commit()
-                else:
-                    ret = {
-                            'status_code': 404
-                          , 'message': 'cant delete user object from given userid'
-                          }
+            username = self.get_argument('pseudo')
+            us = self.ormdb.query(User).filter_by(pseudo=username).first()
+            if us is not None:
+                self.ormdb.delete(us)
+                self.ormdb.commit()
+
+                ret = { 'status_code': ret_code, 'deleted_usr_id': us.cid }
             else:
+                ret_code = 404
                 ret = {
-                        'status_code': 400
-                      , 'message': 'userid parameter must be a positive integer'
+                        'status_code': ret_code
+                      , 'message': 'cant delete user object for given pseudo'
                       }
         except tornado.web.MissingArgumentError as e:
+            ret_code = 400
             ret = {
-                    'status_code': 400
-                  , 'message': 'parameter userid must be provided'
+                    'status_code': ret_code
+                  , 'message': 'pseudo parameter must be provided'
                   }
 
         self.respond(ret, ret_code)

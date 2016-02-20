@@ -163,3 +163,6 @@
 * 0.1.9.6
 	+ halfway at removing userid
 	+ added some debug for test and http return code
+* 0.1.9.7
+    + users endpoint is stable
+    + moved COPYING to LICENSE
