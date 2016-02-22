@@ -166,3 +166,6 @@
 * 0.1.9.7
     + users endpoint is stable
     + moved COPYING to LICENSE
+* 0.1.9.8
+    + taken users part from budget api to users api
+    + added mail_servers part to users api
