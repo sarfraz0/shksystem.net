@@ -169,3 +169,5 @@
 * 0.1.9.8
     + taken users part from budget api to users api
     + added mail_servers part to users api
+* 0.1.9.9
+	+ nearly finished info dictionnary

@@ -71,6 +71,111 @@ class InfoHandler(BaseHandler):
     def get(self):
         ret = {}
         ret_code = 200
+
+        ret['base_api_url'] = '/api/v1'
+        e_info = {
+            'info':
+            {
+                'allowed_methods':
+                [
+                    {
+                        'GET':
+                        {
+                            'arguments': None,
+                            'action': 'print this help'
+                        }
+                    }
+                ]
+            }
+        }
+        e_users = {
+            'users':
+            {
+                'allowed_methods':
+                {
+                    'GET':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username corresponding to the unique pseudo for which info must be fetched'
+                            }
+                        ],
+                        'action': 'show user description',
+                        'curl_example': 'curl -X GET "https://$host/api/v1/users?pseudo=example"'
+                    },
+                    'POST':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username of new user - must be unique'
+                            },
+                            {
+                                'position': 2,
+                                'name': 'password',
+                                'nullable': False,
+                                'description': 'password of the new user'
+                            },
+                            {
+                                'position': 3,
+                                'name': 'email',
+                                'nullable': True,
+                                'description': 'email of the new user (null if not present)'
+                            }
+                        ],
+                        'action': 'create new user',
+                        'curl_example': 'curl -X POST -F "pseudo=example" -F "password=example" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                    }
+                    'PUT':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username corresponding to the unique pseudo which need update'
+                            },
+                            {
+                                'position': 2,
+                                'name': 'password',
+                                'nullable': True,
+                                'description': 'new password of the user'
+                            },
+                            {
+                                'position': 3,
+                                'name': 'email',
+                                'nullable': True,
+                                'description': 'new email of the user'
+                            },
+                            {
+                                'position': 4,
+                                'name': 'status',
+                                'nullable': True,
+                                'description': 'account status of the user - must be taken from the statuses endpoint'
+                            },
+                            {
+                                'position': 5,
+                                'name': 'roles',
+                                'nullable': True,
+                                'description': 'roles of the user - must be a ";" concatenated list of roles taken from the roles endpoint'
+                            }
+                        ],
+                        'action': 'update user given new fields; no change if optionnal field is ommited or invalid',
+                        'curl_example': 'curl -X PUT -F "pseudo=example" -F "password=example" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                    }
+                }
+            }
+        }
+        ret['endpoints'] = [ e_info, e_users ]
+
         self.respond(ret, ret_code)
 
 
@@ -289,7 +394,6 @@ class MailServerHandler(BaseHandler):
         self.respond(ret, ret_code)
 
 
-
 class RoleHandler(BaseHandler):
 
     def get(self):
@@ -402,6 +506,9 @@ class UserHandler(BaseHandler):
                         if c_role is not None:
                             t_roles.append(c_role)
                     usr.roles = t_roles
+
+                if email is not None:
+                    usr.email = email
 
                 ret = {
                         'status_code': ret_code
