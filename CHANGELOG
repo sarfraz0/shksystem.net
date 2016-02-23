@@ -171,3 +171,6 @@
     + added mail_servers part to users api
 * 0.1.9.9
 	+ nearly finished info dictionnary
+* 0.1.9.10
+	+ began adapting MailServerHandler
+	+ added some more infos to infos

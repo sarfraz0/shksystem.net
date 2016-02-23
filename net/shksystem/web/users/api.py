@@ -88,6 +88,36 @@ class InfoHandler(BaseHandler):
                 ]
             }
         }
+        e_statuses = {
+            'statuses':
+            {
+                'allowed_methods':
+                [
+                    {
+                        'GET':
+                        {
+                            'arguments': None,
+                            'action': 'print this help'
+                        }
+                    }
+                ]
+            }
+        }
+        e_roles = {
+            'roles':
+            {
+                'allowed_methods':
+                [
+                    {
+                        'GET':
+                        {
+                            'arguments': None,
+                            'action': 'print this help'
+                        }
+                    }
+                ]
+            }
+        }
         e_users = {
             'users':
             {
@@ -132,7 +162,7 @@ class InfoHandler(BaseHandler):
                         ],
                         'action': 'create new user',
                         'curl_example': 'curl -X POST -F "pseudo=example" -F "password=example" -F "email=example@mail.com" "https://$host/api/v1/users"'
-                    }
+                    },
                     'PUT':
                     {
                         'arguments':
@@ -169,12 +199,126 @@ class InfoHandler(BaseHandler):
                             }
                         ],
                         'action': 'update user given new fields; no change if optionnal field is ommited or invalid',
-                        'curl_example': 'curl -X PUT -F "pseudo=example" -F "password=example" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                        'curl_example': 'curl -X PUT -F "pseudo=example" -F "status=active" -F "roles=manager;user" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                    },
+                    'DELETE':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username of the account to be deleted'
+                            }
+                        ],
+                        'action': 'delete an user',
+                        'curl_example': 'curl -X DELETE "https://$host/api/v1/users?pseudo=example"'
                     }
                 }
             }
         }
-        ret['endpoints'] = [ e_info, e_users ]
+        e_mail_servers = {
+            'users':
+            {
+                'allowed_methods':
+                {
+                    'GET':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username corresponding to the unique pseudo for which info must be fetched'
+                            }
+                        ],
+                        'action': 'show user description',
+                        'curl_example': 'curl -X GET "https://$host/api/v1/users?pseudo=example"'
+                    },
+                    'POST':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username of new user - must be unique'
+                            },
+                            {
+                                'position': 2,
+                                'name': 'password',
+                                'nullable': False,
+                                'description': 'password of the new user'
+                            },
+                            {
+                                'position': 3,
+                                'name': 'email',
+                                'nullable': True,
+                                'description': 'email of the new user (null if not present)'
+                            }
+                        ],
+                        'action': 'create new user',
+                        'curl_example': 'curl -X POST -F "pseudo=example" -F "password=example" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                    },
+                    'PUT':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username corresponding to the unique pseudo which need update'
+                            },
+                            {
+                                'position': 2,
+                                'name': 'password',
+                                'nullable': True,
+                                'description': 'new password of the user'
+                            },
+                            {
+                                'position': 3,
+                                'name': 'email',
+                                'nullable': True,
+                                'description': 'new email of the user'
+                            },
+                            {
+                                'position': 4,
+                                'name': 'status',
+                                'nullable': True,
+                                'description': 'account status of the user - must be taken from the statuses endpoint'
+                            },
+                            {
+                                'position': 5,
+                                'name': 'roles',
+                                'nullable': True,
+                                'description': 'roles of the user - must be a ";" concatenated list of roles taken from the roles endpoint'
+                            }
+                        ],
+                        'action': 'update user given new fields; no change if optionnal field is ommited or invalid',
+                        'curl_example': 'curl -X PUT -F "pseudo=example" -F "status=active" -F "roles=manager;user" -F "email=example@mail.com" "https://$host/api/v1/users"'
+                    },
+                    'DELETE':
+                    {
+                        'arguments':
+                        [
+                            {
+                                'position': 1,
+                                'name': 'pseudo',
+                                'nullable': False,
+                                'description': 'username of the account to be deleted'
+                            }
+                        ],
+                        'action': 'delete an user',
+                        'curl_example': 'curl -X DELETE "https://$host/api/v1/users?pseudo=example"'
+                    }
+                }
+            }
+        }
+        ret['endpoints'] = [ e_info, e_statuses, e_roles, e_users, e_mail_servers ]
 
         self.respond(ret, ret_code)
 
@@ -292,21 +436,23 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            username = self.get_argument('pseudo')
-            us = self.ormdb.query(User).filter_by(pseudo=username).first()
+            host = self.get_argument('hostname')
+            usern = self.get_argument('username')
+            us = self.ormdb.query(User).filter_by(hostname=host) \
+                                       .filter_by(username=usrn).first()
             if us is not None:
                 ret = us.to_dict()
             else:
                 ret_code = 404
                 ret = {
                         'status_code': ret_code
-                      , 'message': 'inexistant user object for given pseudo'
+                      , 'message': 'inexistant mail_server object for given hostname/username pair'
                       }
         except tornado.web.MissingArgumentError as e:
             ret_code = 400
             ret = {
                     'status_code': ret_code
-                  , 'message': 'valid pseudo parameter must be provided'
+                  , 'message': 'hostname and username parameters must be provided'
                   }
         self.respond(ret, ret_code)
 
@@ -315,11 +461,14 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            username = self.get_argument('pseudo')
-            email    = self.get_argument('email', default=None)
-            password = self.get_argument('password')
+            host      = self.get_argument('hostname')
+            prt       = self.get_argument('port')
+            usern     = self.get_argument('username')
+            passwd    = self.get_argument('password')
+            sendr     = self.get_argument('mail_sender')
+            pseudonym = self.get_argument('pseudo', default=None)
 
-            ret = yield self.create_user(username, password, email)
+            ret = yield self.create_server(username, password, email)
             if 'status_code' in ret:
                 ret_code = ret['status_code']
 
@@ -337,11 +486,12 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = 200
         try:
-            username        = self.get_argument('pseudo')
-            email           = self.get_argument('email',    default=None)
-            password        = self.get_argument('password', default=None)
-            status_name     = self.get_argument('status',   default=None)
-            raw_roles_list  = self.get_argument('roles',    default=None)
+            host      = self.get_argument('hostname')
+            usern     = self.get_argument('username')
+            prt       = self.get_argument('port', default=None)
+            passwd    = self.get_argument('password', default=None)
+            sendr     = self.get_argument('mail_sender', default=None)
+            pseudonym = self.get_argument('pseudo', default=None)
 
             roles_list = None
             if raw_roles_list is not None:
