@@ -174,3 +174,6 @@
 * 0.1.9.10
 	+ began adapting MailServerHandler
 	+ added some more infos to infos
+* 0.1.9.11
+	+ removed InfoHandler
+	+ finalized put method for mail_servers
