@@ -11,11 +11,12 @@ import json
 # installed
 from sqlalchemy import create_engine, exc
 from sqlalchemy.orm import scoped_session, sessionmaker
-from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
-from tornado import gen, autoreload
-from tornado.ioloop import IOLoop
+from tornado import autoreload
 import tornado.web
+import tornado.gen
+from tornado.ioloop import IOLoop
+import redis
 from passlib.hash import sha512_crypt
 import keyring
 # custom
@@ -27,6 +28,8 @@ from net.shksystem.db.users import Base, User, Status, Role, MailServer
 logger = logging.getLogger()
 
 MAX_WORKERS=4
+REDIS_CACHE_TIMEOUT=2700
+STATIC_CACHID='C6CH4d'
 
 HTTP_OK='200'
 HTTP_BAD_REQUEST='400'
@@ -46,6 +49,7 @@ class Application(tornado.web.Application):
                    , (r'/api/v1/users', UserHandler)
                    ]
         tornado.web.Application.__init__(self, handlers)
+
         self.ormdb = scoped_session(
                         sessionmaker(
                            autocommit=False,
@@ -56,6 +60,8 @@ class Application(tornado.web.Application):
                                 )))
         Base.query = self.ormdb.query_property()
 
+        self.redis = redis.Redis()
+
 
 class BaseHandler(tornado.web.RequestHandler):
 
@@ -63,10 +69,15 @@ class BaseHandler(tornado.web.RequestHandler):
     def ormdb(self):
         return self.application.ormdb
 
-    def respond(self, data, code=HTTP_OK):
+    @property
+    def redis(self):
+        return self.application.redis
+
+    def respond(self, data, code=HTTP_OK, data_dump=True):
         self.set_header('Content-Type', 'application/json')
         self.set_status(int(code))
-        self.write(json.dumps(data, indent=4))
+        data_write = data if not data_dump else json.dumps(data, indent=4)
+        self.write(data_write)
         self.finish()
 
 
@@ -74,7 +85,7 @@ class MailServerHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def create_server(self, host, prt, usern, passwd, sendr, owner_name=None):
         """
             create_server :: Self
@@ -113,7 +124,7 @@ class MailServerHandler(BaseHandler):
 
         return ret
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def update_server(self, host, usern, prt=None, passwd=None, sendr=None,
                       owner_name=None):
         """
@@ -173,22 +184,32 @@ class MailServerHandler(BaseHandler):
     def get(self):
         ret = {}
         ret_code = HTTP_OK
+        dp=True
         try:
             host = self.get_argument('hostname')
             usern = self.get_argument('username')
-            us = self.ormdb.query(MailServer) \
-                           .filter_by(hostname=host, username=usern).first()
-            if us is not None:
-                ret = us.to_dict()
+
+            uniq_redis_id = 'mail_servers_{0}{1}_{2}'.format(host, usern, STATIC_CACHID)
+            red_res = self.redis.get(uniq_redis_id)
+            if red_res is not None:
+                ret = red_res
+                dp=False
             else:
-                ret_code = HTTP_NOT_FOUND
-                ret = { 'error': 'inexistant object for hostname/username pair' }
+                us = self.ormdb.query(MailServer) \
+                               .filter_by(hostname=host, username=usern).first()
+                if us is not None:
+                    ret = us.to_dict()
+                    self.redis.set(uniq_redis_id, json.dumps(ret, indent=4))
+                    self.redis.expire(uniq_redis_id, REDIS_CACHE_TIMEOUT)
+                else:
+                    ret_code = HTTP_NOT_FOUND
+                    ret = { 'error': 'inexistant object for hostname/username pair' }
 
         except tornado.web.MissingArgumentError as e:
             ret_code = HTTP_BAD_REQUEST
             ret = { 'error': 'hostname and username must be provided' }
 
-        self.respond(ret, ret_code)
+        self.respond(ret, ret_code, data_dump=dp)
 
     @tornado.gen.coroutine
     def post(self):
@@ -277,6 +298,7 @@ class MailServerHandler(BaseHandler):
 
 class RoleHandler(BaseHandler):
 
+    @tornado.gen.coroutine
     def get(self):
         ret = {}
         ret_code = HTTP_OK
@@ -288,6 +310,7 @@ class RoleHandler(BaseHandler):
 
 class StatusHandler(BaseHandler):
 
+    @tornado.gen.coroutine
     def get(self):
         ret = {}
         ret_code = HTTP_OK
@@ -301,7 +324,7 @@ class UserHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def create_user(self, username, password, email=None):
         """
             create_user :: Self
@@ -340,7 +363,7 @@ class UserHandler(BaseHandler):
 
         return ret
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def update_user(self, username, password=None, status_name=None,
                     roles_list=None, email=None):
         """
@@ -397,20 +420,30 @@ class UserHandler(BaseHandler):
     def get(self):
         ret = {}
         ret_code = HTTP_OK
+        dp=True
         try:
             username = self.get_argument('pseudo')
-            us = self.ormdb.query(User).filter_by(pseudo=username).first()
-            if us is not None:
-                ret = us.to_dict()
+
+            uniq_redis_id = 'users_{0}_{1}'.format(username, STATIC_CACHID)
+            red_res = self.redis.get(uniq_redis_id)
+            if red_res is not None:
+                ret = red_res
+                dp=False
             else:
-                ret_code = HTTP_NOT_FOUND
-                ret = { 'error': 'inexistant user object for given pseudo' }
+                us = self.ormdb.query(User).filter_by(pseudo=username).first()
+                if us is not None:
+                    ret = us.to_dict()
+                    self.redis.set(uniq_redis_id, json.dumps(ret, indent=4))
+                    self.redis.expire(uniq_redis_id, REDIS_CACHE_TIMEOUT)
+                else:
+                    ret_code = HTTP_NOT_FOUND
+                    ret = { 'error': 'inexistant user object for given pseudo' }
 
         except tornado.web.MissingArgumentError as e:
             ret_code = HTTP_BAD_REQUEST
             ret = { 'error': 'valid pseudo parameter must be provided' }
 
-        self.respond(ret, ret_code)
+        self.respond(ret, ret_code, data_dump=dp)
 
     @tornado.gen.coroutine
     def post(self):
@@ -484,7 +517,7 @@ def run_api(database_url, port=8080, debug=False):
     app.listen(port)
     ioloop = IOLoop.instance()
     if debug:
-        autoreload.start(ioloop)
+        tornado.autoreload.start(ioloop)
     ioloop.start()
 
 #

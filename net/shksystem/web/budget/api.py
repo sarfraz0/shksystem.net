@@ -11,11 +11,9 @@ import json
 # installed
 from sqlalchemy import create_engine, exc
 from sqlalchemy.orm import scoped_session, sessionmaker
-from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
-from tornado import gen, autoreload
+import tornado
 from tornado.ioloop import IOLoop
-import tornado.web
 import keyring
 from passlib.hash import sha512_crypt
 # custom
@@ -41,6 +39,7 @@ class Application(tornado.web.Application):
                    , (r'/api/v1/users', UserHandler)
                    ]
         tornado.web.Application.__init__(self, handlers)
+
         self.ormdb = scoped_session(
                         sessionmaker(
                            autocommit=False,
@@ -51,12 +50,19 @@ class Application(tornado.web.Application):
                                 )))
         Base.query = self.ormdb.query_property()
 
+        self.redis = tornadoredis.Client()
+        self.redis.connect()
+
 
 class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def ormdb(self):
         return self.application.ormdb
+
+    @property
+    def redis(self):
+        return self.application.redis
 
     def respond(self, data, code=200):
         self.set_header('Content-Type', 'application/json')
@@ -67,6 +73,8 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class RoleHandler(BaseHandler):
 
+    @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def get(self):
         ret = {}
         ret_code = 200
@@ -78,6 +86,8 @@ class RoleHandler(BaseHandler):
 
 class StatusHandler(BaseHandler):
 
+    @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def get(self):
         ret = {}
         ret_code = 200
@@ -91,7 +101,7 @@ class UserHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def create_user(
            self,
            username,
@@ -134,7 +144,7 @@ class UserHandler(BaseHandler):
 
         return ret
 
-    @run_on_executor
+    @tornado.concurrent.run_on_executor
     def update_user(
            self,
            username,
@@ -196,6 +206,7 @@ class UserHandler(BaseHandler):
         return ret
 
     @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def get(self):
         ret = {}
         ret_code = 200
@@ -219,6 +230,7 @@ class UserHandler(BaseHandler):
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def post(self):
         ret = {}
         ret_code = 200
@@ -241,6 +253,7 @@ class UserHandler(BaseHandler):
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def put(self):
         ret = {}
         ret_code = 200
@@ -275,6 +288,7 @@ class UserHandler(BaseHandler):
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
+    @tornado.web.asynchronous
     def delete(self):
         ret = {}
         ret_code = 200
@@ -307,7 +321,7 @@ def run_api(database_url, port=8180, debug=False):
     app.listen(port)
     ioloop = IOLoop.instance()
     if debug:
-        autoreload.start(ioloop)
+        tornado.autoreload.start(ioloop)
     ioloop.start()
 
 #

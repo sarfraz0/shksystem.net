@@ -11,7 +11,7 @@ from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, \
 from sqlalchemy.orm import relationship, sessionmaker
 # installed
 from passlib.hash import sha512_crypt
-import keyring
+#import keyring
 
 
 ## Globals
@@ -108,6 +108,7 @@ class MailServer(Base):
     port     = Column(Integer, nullable=False)
     username = Column(String, nullable=False)
     sender   = Column(String, nullable=False)
+    password = Column(String, nullable=False)
     user_cid = Column(Integer, ForeignKey('users.cid'))
     __table_args__ = (UniqueConstraint(
                          'hostname',
@@ -120,7 +121,8 @@ class MailServer(Base):
         self.port     = port
         self.username = username
         self.sender   = sender
-        keyring.set_password(hostname, username, password)
+        self.password = password
+        #keyring.set_password(hostname, username, password)
         if user is not None:
             self.user = user
 
