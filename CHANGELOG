@@ -177,3 +177,5 @@
 * 0.1.9.11
 	+ removed InfoHandler
 	+ finalized put method for mail_servers
+* 0.1.9.12
+    + users api base is done

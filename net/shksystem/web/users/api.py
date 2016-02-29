@@ -28,6 +28,10 @@ logger = logging.getLogger()
 
 MAX_WORKERS=4
 
+HTTP_OK='200'
+HTTP_BAD_REQUEST='400'
+HTTP_NOT_FOUND='404'
+
 ## Functions and Classes
 # =============================================================================
 
@@ -59,9 +63,9 @@ class BaseHandler(tornado.web.RequestHandler):
     def ormdb(self):
         return self.application.ormdb
 
-    def respond(self, data, code=200):
+    def respond(self, data, code=HTTP_OK):
         self.set_header('Content-Type', 'application/json')
-        self.set_status(code)
+        self.set_status(int(code))
         self.write(json.dumps(data, indent=4))
         self.finish()
 
@@ -72,49 +76,61 @@ class MailServerHandler(BaseHandler):
 
     @run_on_executor
     def create_server(self, host, prt, usern, passwd, sendr, owner_name=None):
+        """
+            create_server :: Self
+                          -> String               -- ^ smtp hostname
+                          -> Int                  -- ^ smtp port
+                          -> String               -- ^ smtp username
+                          -> String               -- ^ smtp password
+                          -> String               -- ^ identity email
+                          -> Maybe String         -- ^ owner name
+                          -> IO Map String String -- ^ request info
+            ========================================================
+            This method creates a new mail_server given proper infos
+        """
         ret = {}
-        ret_code = 200
 
         owner=None
         if owner_name is not None:
             owner = self.ormdb.query(User).filter_by(pseudo=owner_name).first()
-        serv = MaiServer(hostname, port, username, password, sender, owner)
+
+        serv = MailServer(host, prt, usern, passwd, sendr, owner)
 
         try:
             self.ormdb.add(serv)
             self.ormdb.flush()
-            ret = {
-                    'status_code': ret_code
-                  , 'new_server_id': serv.cid
-                  , 'new_server': serv.to_dict()
-                  }
+            ret = { 'status_code': HTTP_OK
+                  , 'message': serv.to_dict() }
             self.ormdb.commit()
+
         except exc.IntegrityError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'mail_server already exists'
-                  }
+            ret = { 'status_code': HTTP_BAD_REQUEST
+                  , 'error': 'mail_server already exists' }
         except Exception as e:
             logger.exception('Unhandled Exception')
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'Unhandled Exception'
-                  }
+            ret = { 'status_code': HTTP_BAD_REQUEST
+                  , 'error': 'Unhandled Exception' }
 
         return ret
 
     @run_on_executor
-    def update_server(self, host, usern, prt=None, passwd=None, sendr=None, owner_name=None):
+    def update_server(self, host, usern, prt=None, passwd=None, sendr=None,
+                      owner_name=None):
         """
-            update_server :: Self -> String -> String -> Maybe Int -> Maybe String -> Maybe String -> Maybe String -> IO Dict
-            ================================================
+            update_server :: Self
+                          -> String               -- ^ hostname of server
+                          -> String               -- ^ username of server
+                          -> Maybe Int            -- ^ new port
+                          -> Maybe String         -- ^ new password
+                          -> Maybe String         -- ^ new identity
+                          -> Maybe String         -- ^ mail_server's owner
+                          -> IO Map String String -- ^ request info
+            ======================================================
             This function updates a mail_server object in database
         """
         ret = {}
-        ret_code = 200
-        srv = self.ormdb.query(MailServer).filter_by(hostname=host, username=usern).first()
+        srv = self.ormdb.query(MailServer) \
+                        .filter_by(hostname=host, username=usern).first()
         if srv is not None:
             try:
                 if passwd is not None:
@@ -126,17 +142,15 @@ class MailServerHandler(BaseHandler):
                 if sendr is not None:
                     serv.sender = sendr
 
-                final_ret = {
-                              'status_code': ret_code
-                            , 'updated_usr_id': usr.cid
-                            , 'updated_usr': usr.to_dict()
-                            }
+                final_ret = { 'status_code': HTTP_OK
+                            , 'message': srv.to_dict() }
 
                 if owner_name is not None:
-                    usr = self.ormdb.query(User).filter_by(pseudo=owner_name).first()
+                    usr = self.ormdb.query(User) \
+                                    .filter_by(pseudo=owner_name).first()
                     if usr is None:
-                        ret = {
-                              }
+                        ret = { 'status_code': HTTP_NOT_FOUND
+                              , 'error': 'owner does not exist' }
                     else:
                         srv.owner = usr
                         ret = final_ret
@@ -144,48 +158,42 @@ class MailServerHandler(BaseHandler):
                     ret = final_ret
 
                 self.ormdb.commit()
+
             except Exception as e:
                 logger.exception('user could not be updated')
-                ret = {
-                        'status_code': 400
-                      , 'message': 'user could not be updated'
-                      }
+                ret = { 'status_code': HTTP_BAD_REQUEST
+                      , 'error': 'user could not be updated' }
         else:
-            ret = {
-                    'status_code': 404
-                  , 'message': 'mail_server does not exist'
-                  }
+            ret = { 'status_code': HTTP_BAD_REQUEST
+                  , 'error': 'mail_server does not exist' }
+
         return ret
 
     @tornado.gen.coroutine
     def get(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             host = self.get_argument('hostname')
             usern = self.get_argument('username')
-            us = self.ormdb.query(User).filter_by(hostname=host) \
-                                       .filter_by(username=usrn).first()
+            us = self.ormdb.query(MailServer) \
+                           .filter_by(hostname=host, username=usern).first()
             if us is not None:
                 ret = us.to_dict()
             else:
-                ret_code = 404
-                ret = {
-                        'status_code': ret_code
-                      , 'message': 'inexistant mail_server object for given hostname/username pair'
-                      }
+                ret_code = HTTP_NOT_FOUND
+                ret = { 'error': 'inexistant object for hostname/username pair' }
+
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'hostname and username parameters must be provided'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'hostname and username must be provided' }
+
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def post(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             host       = self.get_argument('hostname')
             prt        = self.get_argument('port')
@@ -198,29 +206,24 @@ class MailServerHandler(BaseHandler):
             if not (prt2 in [25, 465, 587]):
                 raise ValueError
 
-            ret = yield self.create_server(host, usern, prt2, usern, passwd, sendr, owner_name)
-            if 'status_code' in ret:
-                ret_code = ret['status_code']
+            res = yield self.create_server(host, prt2, usern, passwd, sendr,
+                                           owner_name)
+            ret_code = res.pop('status_code')
+            ret = res if 'error' in res else res['message']
 
         except tornado.web.MissingArgumentError:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'post form is missing required data'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'post form is missing required data' }
         except ValueError:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'port must be 25, 465 or 587'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'port must be 25, 465 or 587' }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def put(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             host       = self.get_argument('hostname')
             usern      = self.get_argument('username')
@@ -229,35 +232,30 @@ class MailServerHandler(BaseHandler):
             sendr      = self.get_argument('mail_sender', default=None)
             owner_name = self.get_argument('pseudo', default=None)
 
+            prt2=None
             if prt is not None:
                 prt2 = int(prt)
                 if not (prt2 in [25, 465, 587]):
                     raise ValueError
 
-            ret = yield self.update_server(host, prt2, usern, passwd, sendr, owner_name)
-
-            if 'status_code' in ret:
-                ret_code = ret['status_code']
+            res = yield self.update_server(host, usern, prt2, passwd, sendr,
+                                           owner_name)
+            ret_code = res.pop('status_code')
+            ret = res if 'error' in res else res['message']
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'put form is missing required data'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'put form is missing required data' }
         except ValueError:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'port must be 25, 465 or 587'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'port must be 25, 465 or 587' }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def delete(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             username = self.get_argument('pseudo')
             us = self.ormdb.query(User).filter_by(pseudo=username).first()
@@ -265,19 +263,14 @@ class MailServerHandler(BaseHandler):
                 self.ormdb.delete(us)
                 self.ormdb.commit()
 
-                ret = { 'status_code': ret_code, 'deleted_usr_id': us.cid }
+                ret = { 'deleted_usr_id': us.cid }
             else:
-                ret_code = 404
-                ret = {
-                        'status_code': ret_code
-                      , 'message': 'cant delete user object for given pseudo'
-                      }
+                ret_code = HTTP_NOT_FOUND
+                ret = { 'error': 'cant delete user object for given pseudo' }
+
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'pseudo parameter must be provided'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'pseudo parameter must be provided' }
 
         self.respond(ret, ret_code)
 
@@ -286,7 +279,7 @@ class RoleHandler(BaseHandler):
 
     def get(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         roles = self.ormdb.query(Role).all()
         for r in roles:
             ret[r.cid] = r.name
@@ -297,7 +290,7 @@ class StatusHandler(BaseHandler):
 
     def get(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         roles = self.ormdb.query(Status).all()
         for r in roles:
             ret[r.cid] = r.name
@@ -309,14 +302,17 @@ class UserHandler(BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @run_on_executor
-    def create_user(
-           self,
-           username,
-           password,
-           email=None
-        ):
+    def create_user(self, username, password, email=None):
+        """
+            create_user :: Self
+                        -> String               -- ^ new user's name
+                        -> String               -- ^ the password
+                        -> Maybe String         -- ^ the email
+                        -> IO Map String String -- ^ request info
+            ===========================
+            This method creates an user
+        """
         ret = {}
-        ret_code = 200
 
         d_status = self.ormdb.query(Status).filter_by(name='pending').first()
         usr = User(username, password, d_status)
@@ -330,50 +326,35 @@ class UserHandler(BaseHandler):
         try:
             self.ormdb.add(usr)
             self.ormdb.flush()
-            ret = {
-                    'status_code': ret_code
-                  , 'new_usr_id': usr.cid
-                  , 'new_usr': usr.to_dict()
-                  }
+            ret = { 'status_code': HTTP_OK
+                  , 'message': usr.to_dict() }
             self.ormdb.commit()
+
         except exc.IntegrityError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'user already exists'
-                  }
+            ret = { 'status_code': HTTP_BAD_REQUEST
+                  , 'error': 'user already exists' }
         except Exception as e:
             logger.exception('Unhandled Exception')
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'Unhandled Exception'
-                  }
+            ret = { 'status_code': HTTP_BAD_REQUEST
+                  , 'error': 'Unhandled Exception' }
 
         return ret
 
     @run_on_executor
-    def update_user(
-           self,
-           username,
-           password=None,
-           status_name=None,
-           roles_list=None,
-           email=None
-        ):
+    def update_user(self, username, password=None, status_name=None,
+                    roles_list=None, email=None):
         """
             update_user :: Self
-                        -> String
-                        -> Maybe String
-                        -> Maybe String
-                        -> Maybe [String]
-                        -> Maybe String
-                        -> IO Map String String
-            ===================================
+                        -> String                -- ^ users's pseudo
+                        -> Maybe String          -- ^ new password
+                        -> Maybe String          -- ^ account status name
+                        -> Maybe [String]        -- ^ list of roles names
+                        -> Maybe String          -- ^ new email
+                        -> IO Map String String  -- ^ request info
+            ================================================
             This function updates an user object in database
         """
         ret = {}
-        ret_code = 200
         usr = self.ormdb.query(User).filter_by(pseudo=username).first()
         if usr is not None:
             try:
@@ -381,7 +362,7 @@ class UserHandler(BaseHandler):
                     usr.passwhash = sha512_crypt.encrypt(password)
 
                 if status_name is not None:
-                    c_stat = self.ormdb.query(Status) \
+                    c_stat = self.ormdb.query(Status)\
                                        .filter_by(name=status_name).first()
                     if c_stat is not None:
                         usr.status = c_stat
@@ -398,108 +379,87 @@ class UserHandler(BaseHandler):
                 if email is not None:
                     usr.email = email
 
-                ret = {
-                        'status_code': ret_code
-                      , 'updated_usr_id': usr.cid
-                      , 'updated_usr': usr.to_dict()
-                      }
+                ret = { 'status_code': HTTP_OK
+                      , 'message': usr.to_dict() }
                 self.ormdb.commit()
+
             except Exception as e:
                 logger.exception('user could not be updated')
-                ret = {
-                        'status_code': 400
-                      , 'message': 'user could not be updated'
-                      }
+                ret = { 'status_code': HTTP_BAD_REQUEST
+                      , 'error': 'user could not be updated' }
         else:
-            ret = {
-                    'status_code': 404
-                  , 'message': 'user does not exist'
-                  }
+            ret = { 'status_code': HTTP_NOT_FOUND
+                  , 'error': 'user does not exist' }
+
         return ret
 
     @tornado.gen.coroutine
     def get(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             username = self.get_argument('pseudo')
             us = self.ormdb.query(User).filter_by(pseudo=username).first()
             if us is not None:
                 ret = us.to_dict()
             else:
-                ret_code = 404
-                ret = {
-                        'status_code': ret_code
-                      , 'message': 'inexistant user object for given pseudo'
-                      }
+                ret_code = HTTP_NOT_FOUND
+                ret = { 'error': 'inexistant user object for given pseudo' }
+
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'valid pseudo parameter must be provided'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'valid pseudo parameter must be provided' }
+
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def post(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             username = self.get_argument('pseudo')
             email    = self.get_argument('email', default=None)
             password = self.get_argument('password')
 
-            ret = yield self.create_user(username, password, email)
-            if 'status_code' in ret:
-                ret_code = ret['status_code']
+            res = yield self.create_user(username, password, email)
+            ret_code = res.pop('status_code')
+            ret = res if 'error' in res else res['message']
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'post form is missing required data'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'post form is missing required data' }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def put(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
-            username        = self.get_argument('pseudo')
-            email           = self.get_argument('email',    default=None)
-            password        = self.get_argument('password', default=None)
-            status_name     = self.get_argument('status',   default=None)
-            raw_roles_list  = self.get_argument('roles',    default=None)
+            i_us = self.get_argument('pseudo')
+            i_em = self.get_argument('email', default=None)
+            i_pa = self.get_argument('password', default=None)
+            i_st = self.get_argument('status', default=None)
+            i_rw = self.get_argument('roles', default=None)
 
-            roles_list = None
-            if raw_roles_list is not None:
-                roles_list= filter(lambda x: x != '', raw_roles_list.split(';'))
+            p_rl = None
+            if i_rw is not None:
+                p_rl = filter(lambda x: x != '', i_rw.split(';'))
 
-            ret = yield self.update_user(
-                                username,
-                                password,
-                                status_name,
-                                roles_list,
-                                email
-                             )
-            if 'status_code' in ret:
-                ret_code = ret['status_code']
+            res = yield self.update_user(i_us, i_pa, i_st, p_rl, i_em)
+            ret_code = res.pop('status_code')
+            ret = res if 'error' in res else res['message']
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'put form is missing required data'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'put form is missing required data' }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
     def delete(self):
         ret = {}
-        ret_code = 200
+        ret_code = HTTP_OK
         try:
             username = self.get_argument('pseudo')
             us = self.ormdb.query(User).filter_by(pseudo=username).first()
@@ -507,19 +467,14 @@ class UserHandler(BaseHandler):
                 self.ormdb.delete(us)
                 self.ormdb.commit()
 
-                ret = { 'status_code': ret_code, 'deleted_usr_id': us.cid }
+                ret = { 'deleted_usr_id': us.cid }
             else:
-                ret_code = 404
-                ret = {
-                        'status_code': ret_code
-                      , 'message': 'cant delete user object for given pseudo'
-                      }
+                ret_code = HTTP_NOT_FOUND
+                ret = { 'error': 'cant delete user object for given pseudo' }
+
         except tornado.web.MissingArgumentError as e:
-            ret_code = 400
-            ret = {
-                    'status_code': ret_code
-                  , 'message': 'pseudo parameter must be provided'
-                  }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { 'error': 'pseudo parameter must be provided' }
 
         self.respond(ret, ret_code)
 
