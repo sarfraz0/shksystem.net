@@ -189,7 +189,8 @@ class MailServerHandler(BaseHandler):
             host = self.get_argument('hostname')
             usern = self.get_argument('username')
 
-            uniq_redis_id = 'mail_servers_{0}{1}_{2}'.format(host, usern, STATIC_CACHID)
+            uniq_redis_id = 'mail_servers_{0}{1}_{2}' \
+                               .format(host, usern, STATIC_CACHID)
             red_res = self.redis.get(uniq_redis_id)
             if red_res is not None:
                 ret = red_res
@@ -262,7 +263,15 @@ class MailServerHandler(BaseHandler):
             res = yield self.update_server(host, usern, prt2, passwd, sendr,
                                            owner_name)
             ret_code = res.pop('status_code')
-            ret = res if 'error' in res else res['message']
+            if 'error' in res:
+                ret = res
+            else:
+                ret = res['message']
+                uniq_redis_id = 'mail_servers_{0}{1}_{2}' \
+                                   .format(host, usern, STATIC_CACHID)
+                self.redis.set(uniq_redis_id, json.dumps(ret, indent=4))
+                self.redis.expire(uniq_redis_id, REDIS_CACHE_TIMEOUT)
+
 
         except tornado.web.MissingArgumentError as e:
             ret_code = HTTP_BAD_REQUEST
@@ -481,7 +490,13 @@ class UserHandler(BaseHandler):
 
             res = yield self.update_user(i_us, i_pa, i_st, p_rl, i_em)
             ret_code = res.pop('status_code')
-            ret = res if 'error' in res else res['message']
+            if 'error' in res:
+                ret = res
+            else:
+                ret = res['message']
+                uniq_redis_id = 'users_{0}_{1}'.format(i_us, STATIC_CACHID)
+                self.redis.set(uniq_redis_id, json.dumps(ret, indent=4))
+                self.redis.expire(uniq_redis_id, REDIS_CACHE_TIMEOUT)
 
         except tornado.web.MissingArgumentError as e:
             ret_code = HTTP_BAD_REQUEST

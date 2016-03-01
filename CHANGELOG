@@ -182,3 +182,5 @@
 * 0.1.9.13
 	+ added cache
 	+ stable api
+* 0.1.9.14
+    + added redis to put requests
