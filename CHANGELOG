@@ -184,3 +184,5 @@
 	+ stable api
 * 0.1.9.14
     + added redis to put requests
+* 0.1.9.15
+	+ updated setup.py configuration to allow build of wheel

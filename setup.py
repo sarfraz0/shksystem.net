@@ -1,7 +1,7 @@
 from setuptools import setup
 
-setup(name='variablentreprise.com',
-      version='0.1.8.4',
+setup(name='shksystem.net',
+      version='0.1.9.15',
       author='Sarfraz Kapasi',
       author_email='sarfraz@variablentreprise.com',
       license='GPL-3',
@@ -10,23 +10,15 @@ setup(name='variablentreprise.com',
                , 'net.shksystem'
                , 'net.shksystem.common'
                , 'net.shksystem.db'
-               , 'net.shksystem.business'
                , 'net.shksystem.web'
-               , 'net.shksystem.web.budget'
-               , 'net.shksystem.web.budget.frt'
+               , 'net.shksystem.web.users'
                ],
       install_requires=[ 'tornado'
-                       , 'feedparser'
-                       , 'transmissionrpc'
-                       , 'requests'
-                       , 'keyring'
+                       , 'sqlalchemy'
+                       , 'psycopg2cffi'
                        , 'passlib'
-                       , 'flask-login'
-                       , 'flask-migrate'
-                       , 'flask-wtf'
-                       , 'celery'
                        , 'futures'
                        ],
-      install_requires=[ 'tornado', 'keyring', 'passlib' ],
       include_package_data = True,
-      zip_sae =False)
+      zip_safe =False)
+
