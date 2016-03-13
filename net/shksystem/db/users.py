@@ -38,6 +38,9 @@ class Status(Base):
     def __init__(self, name):
         self.name = name
 
+    def is_active(self):
+        return (self.name.lower().strip() == 'active')
+
 
 class Role(Base):
     """" admin|manager|user|guest """
@@ -49,17 +52,11 @@ class Role(Base):
     def __init__(self, name):
         self.name = name
 
-    def __check_name(self, name):
-        ret = False
-        if self.name.lower().strip() == name:
-            ret = True
-        return ret
-
     def is_admin(self):
-        return self.__check_name('admin')
+        return (self.name.lower().strip() == 'admin')
 
     def is_manager(self):
-        return self.__check_name('manager')
+        return (self.name.lower().strip() == 'manager')
 
 
 class User(Base):
@@ -77,7 +74,7 @@ class User(Base):
         self.status     = status
 
     def is_active(self):
-        return True
+        return self.status.is_active()
 
     def is_authenticated(self):
         return True

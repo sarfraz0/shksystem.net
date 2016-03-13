@@ -18,7 +18,7 @@ import tornado.gen
 from tornado.ioloop import IOLoop
 import redis
 from passlib.hash import sha512_crypt
-import keyring
+#import keyring
 # custom
 from net.shksystem.db.users import Base, User, Status, Role, MailServer
 
@@ -145,7 +145,8 @@ class MailServerHandler(BaseHandler):
         if srv is not None:
             try:
                 if passwd is not None:
-                    keyring.set_password(srv.hostname, srv.username, passwd)
+                    #keyring.set_password(srv.hostname, srv.username, passwd)
+                    serv.password = passwd
 
                 if prt is not None:
                     serv.port = prt
