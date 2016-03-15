@@ -188,3 +188,5 @@
 	+ updated setup.py configuration to allow build of wheel
 * 0.1.9.16
     + users api stable in production
+* 0.1.9.17
+    + return codes are now the same for functions and method in users api
