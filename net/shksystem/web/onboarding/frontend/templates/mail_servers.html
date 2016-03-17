@@ -1,0 +1,154 @@
+{% extends 'menu.html' %}
+{% block title %}Mail Servers Management{% endblock %}
+{% block css %}{{ url_for('static', filename='css/mail_server.css') }}{% endblock %}
+{% block content %}
+
+{% if mode == 'ADD' %}
+<form action="{{ url_for('manage_mail_servers', mode='ADD') }}" method="post">
+    {{ add_form.hidden_tag() }}
+
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Add mail server</legend>
+
+                <div class="row">
+                    <div class="large-8 columns">
+                        {{ add_form.hostname.label }}
+                        {{ add_form.hostname(autofocus=true, required=true) }}
+                    </div>
+                    <div class="large-4 columns">
+                        {{ add_form.port.label }}
+                        {{ add_form.port }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-6 columns">
+                        {{ add_form.username.label }}
+                        {{ add_form.username(autofocus=true, required=true) }}
+                    </div>
+                    <div class="large-6 columns">
+                        {{ add_form.password.label }}
+                        {{ add_form.password(autofocus=true, required=true) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.sender.label }}
+                        {{ add_form.sender(autofocus=true, required=true) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% if mode == 'MODIFY' %}
+<form action="{{ url_for('manage_mail_servers', mode='MODIFY') }}" method="post">
+    {{ modify_form.hidden_tag() }}
+
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Modify mail server</legend>
+
+                <div class="row">
+                    <div class="large12 columns">
+                        {{ modify_form.server.label }}
+                        {{ modify_form.server }}
+                    </div>
+                </div >
+
+                <div class="row">
+                    <div class="large-8 columns">
+                        {{ modify_form.hostname.label }}
+                        {{ modify_form.hostname }}
+                    </div>
+                    <div class="large-4 columns">
+                        {{ modify_form.port.label }}
+                        {{ modify_form.port }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-6 columns">
+                        {{ modify_form.username.label }}
+                        {{ modify_form.username }}
+                    </div>
+                    <div class="large-6 columns">
+                        {{ modify_form.password.label }}
+                        {{ modify_form.password }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.sender.label }}
+                        {{ modify_form.sender }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+<script type="text/javascript" charset="utf-8">
+function get_mail_server() {
+$.getJSON($SCRIPT_ROOT + "/api/ajax/get_mail_server/"+ $("#{{ modify_form.server.id }}").val(),
+    function(data) {
+    $("#{{ modify_form.port.id }}").prop("value", data.PORT);
+    $("#{{ modify_form.username.id }}").prop("value", data.USERNAME);
+    $("#{{ modify_form.sender.id }}").prop("value", data.SENDER);
+    $("#{{ modify_form.hostname.id }}").prop("value", data.HOSTNAME);
+  });
+}
+get_mail_server();
+$("#{{ modify_form.server.id }}").change(function(e) { get_mail_server(); });
+</script>
+{% endif %}
+
+{% if mode == 'REMOVE' %}
+<form action="{{ url_for('manage_mail_servers', mode='REMOVE') }}" method="post">
+    {{ remove_form.hidden_tag() }}
+
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Remove mail server</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ remove_form.server.label }}
+                        {{ remove_form.server }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        <input type="submit" value="Submit" class="button expand">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% endblock %}

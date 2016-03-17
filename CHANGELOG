@@ -190,3 +190,7 @@
     + users api stable in production
 * 0.1.9.17
     + return codes are now the same for functions and method in users api
+* 0.1.9.18
+	+ bugfix on users api
+	+ added onboarding project
+	+ added users business logic

@@ -86,7 +86,7 @@ class MailServerHandler(BaseHandler):
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
     @tornado.concurrent.run_on_executor
-    def create_server(self, host, prt, usern, passwd, sendr, owner_name=None):
+    def create_server(self, host, prt, usern, passwd, sendr, owner_pseudo=None):
         """
             create_server :: Self
                           -> String               -- ^ smtp hostname
@@ -94,7 +94,7 @@ class MailServerHandler(BaseHandler):
                           -> String               -- ^ smtp username
                           -> String               -- ^ smtp password
                           -> String               -- ^ identity email
-                          -> Maybe String         -- ^ owner name
+                          -> Maybe String         -- ^ owner pseudo
                           -> IO Map String String -- ^ request info
             ========================================================
             This method creates a new mail_server given proper infos
@@ -102,9 +102,8 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = HTTP_OK
 
-        owner=None
-        if owner_name is not None:
-            owner = self.ormdb.query(User).filter_by(pseudo=owner_name).first()
+        if owner_pseudo is not None:
+            owner = self.ormdb.query(User).filter_by(pseudo=owner_pseudo).first()
 
         serv = MailServer(host, prt, usern, passwd, sendr, owner)
 
@@ -126,7 +125,7 @@ class MailServerHandler(BaseHandler):
 
     @tornado.concurrent.run_on_executor
     def update_server(self, host, usern, prt=None, passwd=None, sendr=None,
-                      owner_name=None):
+                      owner_pseudo=None):
         """
             update_server :: Self
                           -> String               -- ^ hostname of server
@@ -134,7 +133,7 @@ class MailServerHandler(BaseHandler):
                           -> Maybe Int            -- ^ new port
                           -> Maybe String         -- ^ new password
                           -> Maybe String         -- ^ new identity
-                          -> Maybe String         -- ^ mail_server's owner
+                          -> Maybe String         -- ^ owner pseudo
                           -> IO Map String String -- ^ request info
             ======================================================
             This function updates a mail_server object in database
@@ -148,25 +147,24 @@ class MailServerHandler(BaseHandler):
             try:
                 if passwd is not None:
                     #keyring.set_password(srv.hostname, srv.username, passwd)
-                    serv.password = passwd
+                    srv.password = passwd
 
                 if prt is not None:
-                    serv.port = prt
+                    srv.port = prt
 
                 if sendr is not None:
-                    serv.sender = sendr
+                    srv.sender = sendr
 
-                ret = srv.to_dict()
-
-                if owner_name is not None:
-                    usr = self.ormdb.query(User) \
-                                    .filter_by(pseudo=owner_name).first()
-                    if usr is None:
+                if owner_pseudo is not None:
+                    owner = self.ormdb.query(User) \
+                                      .filter_by(pseudo=owner_pseudo).first()
+                    if owner is None:
                         ret_code = HTTP_NOT_FOUND
                         ret = { 'error': 'owner does not exist' }
                     else:
-                        srv.owner = usr
+                        srv.owner = owner
 
+                ret = srv.to_dict()
                 self.ormdb.commit()
 
             except Exception as e:
@@ -216,19 +214,19 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = HTTP_OK
         try:
-            host       = self.get_argument('hostname')
-            prt        = self.get_argument('port')
-            passwd     = self.get_argument('password')
-            usern      = self.get_argument('username')
-            sendr      = self.get_argument('mail_sender')
-            owner_name = self.get_argument('pseudo', default=None)
+            host         = self.get_argument('hostname')
+            prt          = self.get_argument('port')
+            passwd       = self.get_argument('password')
+            usern        = self.get_argument('username')
+            sendr        = self.get_argument('mail_sender')
+            owner_pseudo = self.get_argument('owner', default=None)
 
             prt2 = int(prt)
             if not (prt2 in [25, 465, 587]):
                 raise ValueError
 
             ret, ret_code = yield self.create_server(host, prt2, usern,
-                                                     passwd, sendr, owner_name)
+                                                     passwd, sendr, owner_pseudo)
 
         except tornado.web.MissingArgumentError:
             ret_code = HTTP_BAD_REQUEST
@@ -244,12 +242,12 @@ class MailServerHandler(BaseHandler):
         ret = {}
         ret_code = HTTP_OK
         try:
-            host       = self.get_argument('hostname')
-            usern      = self.get_argument('username')
-            prt        = self.get_argument('port', default=None)
-            passwd     = self.get_argument('password', default=None)
-            sendr      = self.get_argument('mail_sender', default=None)
-            owner_name = self.get_argument('pseudo', default=None)
+            host         = self.get_argument('hostname')
+            usern        = self.get_argument('username')
+            prt          = self.get_argument('port', default=None)
+            passwd       = self.get_argument('password', default=None)
+            sendr        = self.get_argument('mail_sender', default=None)
+            owner_pseudo = self.get_argument('owner', default=None)
 
             prt2=None
             if prt is not None:
@@ -258,7 +256,7 @@ class MailServerHandler(BaseHandler):
                     raise ValueError
 
             ret, ret_code = yield self.update_server(host, usern, prt2,
-                                                     passwd, sendr, owner_name)
+                                                     passwd, sendr, owner_pseudo)
             if ret_code == HTTP_OK:
                 uniq_redis_id = 'mail_servers_{0}{1}_{2}' \
                                    .format(host, usern, STATIC_CACHID)
@@ -379,6 +377,8 @@ class UserHandler(BaseHandler):
             This function updates an user object in database
         """
         ret = {}
+        ret_code = HTTP_OK
+
         usr = self.ormdb.query(User).filter_by(pseudo=username).first()
         if usr is not None:
             try:
@@ -414,7 +414,7 @@ class UserHandler(BaseHandler):
             ret_code = HTTP_NOT_FOUND
             ret = { 'error': 'user does not exist' }
 
-        return ret
+        return (ret, ret_code)
 
     @tornado.gen.coroutine
     def get(self):
@@ -480,7 +480,6 @@ class UserHandler(BaseHandler):
             ret, ret_code = yield self.update_user(i_us, i_pa, i_st, p_rl, i_em)
 
             if ret_code == HTTP_OK:
-                ret = res['message']
                 uniq_redis_id = 'users_{0}_{1}'.format(i_us, STATIC_CACHID)
                 self.redis.set(uniq_redis_id, json.dumps(ret, indent=4))
                 self.redis.expire(uniq_redis_id, REDIS_CACHE_TIMEOUT)

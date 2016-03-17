@@ -66,7 +66,7 @@ class User(Base):
     passwhash    = Column(String, nullable=False)
     email        = Column(String)
     status_cid   = Column(Integer, ForeignKey('statuses.cid'))
-    mail_servers = relationship('MailServer', backref='user')
+    mail_servers = relationship('MailServer', backref='owner')
 
     def __init__(self, pseudo, passw, status):
         self.pseudo     = pseudo
@@ -113,15 +113,15 @@ class MailServer(Base):
                          name='uq_mail_server'
                       ),)
 
-    def __init__(self, hostname, port, username, password, sender, user=None):
+    def __init__(self, hostname, port, username, password, sender, owner=None):
         self.hostname = hostname
         self.port     = port
         self.username = username
         self.sender   = sender
         self.password = password
         #keyring.set_password(hostname, username, password)
-        if user is not None:
-            self.user = user
+        if owner is not None:
+            self.owner = user
 
     def to_dict(self):
         ret = {}
