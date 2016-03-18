@@ -194,3 +194,6 @@
 	+ bugfix on users api
 	+ added onboarding project
 	+ added users business logic
+* 0.1.9.19
+    + removed mailserver from users api and types
+    + added basic querying logic to users business

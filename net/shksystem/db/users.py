@@ -41,6 +41,14 @@ class Status(Base):
     def is_active(self):
         return (self.name.lower().strip() == 'active')
 
+    def to_dict(self):
+        ret = {}
+        ret['name'] = self.name
+        return ret
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
 
 class Role(Base):
     """" admin|manager|user|guest """
@@ -58,6 +66,14 @@ class Role(Base):
     def is_manager(self):
         return (self.name.lower().strip() == 'manager')
 
+    def to_dict(self):
+        ret = {}
+        ret['name'] = self.name
+        return ret
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
 
 class User(Base):
     __tablename__ = "users"
@@ -66,71 +82,18 @@ class User(Base):
     passwhash    = Column(String, nullable=False)
     email        = Column(String)
     status_cid   = Column(Integer, ForeignKey('statuses.cid'))
-    mail_servers = relationship('MailServer', backref='owner')
 
     def __init__(self, pseudo, passw, status):
         self.pseudo     = pseudo
         self.passwhash  = sha512_crypt.encrypt(passw)
         self.status     = status
 
-    def is_active(self):
-        return self.status.is_active()
-
-    def is_authenticated(self):
-        return True
-
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        return str(self.cid)
-
     def to_dict(self):
         ret = {}
         ret['pseudo']       = self.pseudo
         ret['email']        = self.email
         ret['status']       = self.status.name
-        ret['mail_servers'] = [x.to_dict() for x in self.mail_servers]
         ret['roles']        = [x.name for x in self.roles]
-        return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
-
-
-class MailServer(Base):
-    __tablename__ = 'mail_servers'
-    cid      = Column(Integer, primary_key=True)
-    hostname = Column(String, nullable=False)
-    port     = Column(Integer, nullable=False)
-    username = Column(String, nullable=False)
-    sender   = Column(String, nullable=False)
-    password = Column(String, nullable=False)
-    user_cid = Column(Integer, ForeignKey('users.cid'))
-    __table_args__ = (UniqueConstraint(
-                         'hostname',
-                         'username',
-                         name='uq_mail_server'
-                      ),)
-
-    def __init__(self, hostname, port, username, password, sender, owner=None):
-        self.hostname = hostname
-        self.port     = port
-        self.username = username
-        self.sender   = sender
-        self.password = password
-        #keyring.set_password(hostname, username, password)
-        if owner is not None:
-            self.owner = user
-
-    def to_dict(self):
-        ret = {}
-        ret['hostname']  = self.hostname
-        ret['port']      = self.port
-        ret['username']  = self.username
-        ret['sender']    = self.sender
-        if self.user is not None:
-            ret['owner'] = self.user.pseudo
         return ret
 
     def to_json(self):
