@@ -84,11 +84,11 @@ class RoleHandler(BaseHandler):
 
     @tornado.gen.coroutine
     def get(self):
-        ret = {}
+        ret = []
         ret_code = HTTP_OK
         roles = self.ormdb.query(Role).all()
         for r in roles:
-            ret[r.cid] = r.name
+            ret.append(r.name)
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
@@ -143,11 +143,11 @@ class StatusHandler(BaseHandler):
 
     @tornado.gen.coroutine
     def get(self):
-        ret = {}
+        ret = []
         ret_code = HTTP_OK
-        roles = self.ormdb.query(Status).all()
-        for r in roles:
-            ret[r.cid] = r.name
+        statuses = self.ormdb.query(Status).all()
+        for s in statuses:
+            ret.append(s.name)
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine

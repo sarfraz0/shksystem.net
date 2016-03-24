@@ -4,15 +4,14 @@
 __author__  = 'Sarfraz Kapasi'
 __license__ = 'GPL-3'
 
-# anaconda
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, \
-                       String, Integer, Boolean, create_engine
-from sqlalchemy.orm import relationship, sessionmaker
+# standard
 # installed
+from sqlalchemy import create_engine, Table, Column, Integer, String, \
+                       ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from passlib.hash import sha512_crypt
-#import keyring
-
+# custom
 
 ## Globals
 # =============================================================================
@@ -24,12 +23,12 @@ Base = declarative_base()
 
 roles_users = Table('roles_users', Base.metadata,
     Column('role_cid', Integer, ForeignKey('roles.cid')),
-    Column('user_cid', Integer, ForeignKey('users.cid'))
+    Column('user_cid', Integer, ForeignKey('users.cid')),
+    UniqueConstraint('role_cid', 'user_cid', name='uq_roles_users')
 )
 
 
 class Status(Base):
-    """ active|blacklisted|pending|deleted """
     __tablename__ = 'statuses'
     cid   = Column(Integer, primary_key=True)
     name  = Column(String, nullable=False, unique=True)
@@ -38,20 +37,8 @@ class Status(Base):
     def __init__(self, name):
         self.name = name
 
-    def is_active(self):
-        return (self.name.lower().strip() == 'active')
-
-    def to_dict(self):
-        ret = {}
-        ret['name'] = self.name
-        return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
-
 
 class Role(Base):
-    """" admin|manager|user|guest """
     __tablename__ = 'roles'
     cid   = Column(Integer, primary_key=True)
     name  = Column(String, nullable=False, unique=True)
@@ -59,20 +46,6 @@ class Role(Base):
 
     def __init__(self, name):
         self.name = name
-
-    def is_admin(self):
-        return (self.name.lower().strip() == 'admin')
-
-    def is_manager(self):
-        return (self.name.lower().strip() == 'manager')
-
-    def to_dict(self):
-        ret = {}
-        ret['name'] = self.name
-        return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
 
 
 class User(Base):
@@ -90,14 +63,11 @@ class User(Base):
 
     def to_dict(self):
         ret = {}
-        ret['pseudo']       = self.pseudo
-        ret['email']        = self.email
-        ret['status']       = self.status.name
-        ret['roles']        = [x.name for x in self.roles]
+        ret['pseudo'] = self.pseudo
+        ret['email']  = self.email
+        ret['status'] = self.status.name
+        ret['roles']  = [x.name for x in self.roles]
         return ret
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
 
 
 def init_db(easy_connect):

@@ -197,3 +197,6 @@
 * 0.1.9.19
     + removed mailserver from users api and types
     + added basic querying logic to users business
+* 0.1.9.20
+    + users logic is now partitionned in classes
+    + simplified data model for users
