@@ -231,7 +231,7 @@ class UserHandler(BaseHandler):
             ret = usr.to_dict()
             self.ormdb.commit()
 
-        except exc.IntegrityError as e:
+        except (exc.IntegrityError, exc.InvalidRequestError) as e:
             ret_code = HTTP_BAD_REQUEST
             ret = { 'error': 'user already exists' }
         except Exception as e:

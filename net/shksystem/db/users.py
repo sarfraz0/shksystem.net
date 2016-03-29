@@ -37,6 +37,12 @@ class Status(Base):
     def __init__(self, name):
         self.name = name
 
+    def to_dict(self):
+        ret = {}
+        ret['name'] = self.name
+        ret['users'] = [u.name for u in self.users]
+        return ret
+
 
 class Role(Base):
     __tablename__ = 'roles'
@@ -46,6 +52,12 @@ class Role(Base):
 
     def __init__(self, name):
         self.name = name
+
+    def to_dict(self):
+        ret = {}
+        ret['name'] = self.name
+        ret['users'] = [u.name for u in self.users]
+        return ret
 
 
 class User(Base):

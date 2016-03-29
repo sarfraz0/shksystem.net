@@ -94,7 +94,7 @@ class PostRequest(object):
     def _request(self, endpoint, req_dict):
         ret = False
         try:
-            r = requests.post(endpoint, params=req_dict, verify=self._cert)
+            r = requests.post(endpoint, data=req_dict, verify=self._cert)
             if r.status_code == HTTP_OK:
                 ret = True
         except requests.ConnectionError as c:
@@ -102,17 +102,17 @@ class PostRequest(object):
         return ret
 
     def user(self, user, password):
-        params = { 'pseudo': user.pseudo
-                 , 'password': password
-                 , 'status': user.status
-                 , 'roles': ';'.join(user.roles)
-                 , 'email': user.email }
-        return self._request(self._user_endpoint, params)
+        reqbody = { 'pseudo': user.pseudo
+                  , 'password': password
+                  , 'status': user.status
+                  , 'roles': ';'.join(user.roles)
+                  , 'email': user.email }
+        return self._request(self._user_endpoint, reqbody)
 
-    def roles(self, name):
+    def role(self, name):
         return self._request(self._role_endpoint, {'name': name})
 
-    def statuses(self, name):
+    def status(self, name):
         return self._request(self._status_endpoint, {'name': name})
 
 
@@ -124,27 +124,26 @@ class PutRequest(object):
         self._status_endpoint = status_url
         self._cert = validation_cert
 
-    def _get_request(self, endpoint, req_dict):
-        ret = None
+    def _request(self, endpoint, req_dict):
+        ret = False
         try:
-            r = requests.get(endpoint, params=req_dict, verify=self._cert)
+            r = requests.put(endpoint, data=req_dict, verify=self._cert)
             if r.status_code == HTTP_OK:
-                d = json.loads(r.text)
-                if not 'error' in d:
-                    ret = d
+                ret = True
         except requests.ConnectionError as c:
             logger.exception('Could not connect to User API')
 
         return ret
 
-    def user(self, name):
-        pass
-
-    def roles(self):
-        pass
-
-    def statuses(self):
-        pass
+    def user(self, user, password=None):
+        reqbody = { 'pseudo': user.pseudo
+                  , 'status': user.status
+                  , 'roles': ';'.join(user.roles) }
+        if password is not None:
+            reqbody['password'] = password
+        if user.email is not None:
+            reqbody['email'] = user.email
+        return self._request(self._user_endpoint, reqbody)
 
 
 class DeleteRequest(object):
@@ -156,42 +155,33 @@ class DeleteRequest(object):
         self._cert = validation_cert
 
     def _request(self, endpoint, req_dict):
-        ret = None
+        ret = False
         try:
             r = requests.delete(endpoint, params=req_dict, verify=self._cert)
             if r.status_code == HTTP_OK:
-                d = json.loads(r.text)
-                if not 'error' in d:
-                    ret = d
+                ret = True
         except requests.ConnectionError as c:
             logger.exception('Could not connect to User API')
 
         return ret
 
-    def user(self, name):
-        pass
+    def user(self, pseudo):
+        return self._request(self._user_endpoint, {'pseudo': pseudo})
 
-    def roles(self):
-     def delete_role(self, name):
-        ret = False
-        roles = self.get_roles()
-        if name in roles:
-            par = {'name', name}
-            requests.delete(self._role_endpoint, params=par, verify=self._cert)
-            ret = True
-        return ret
-       pass
+    def role(self, name):
+        return self._request(self._role_endpoint, {'name': name})
 
-    def statuses(self):
-        pass
+    def status(self):
+        return self._request(self._status_endpoint, {'name': name})
 
 
-class UserApi(object):
+class UserAPI(object):
 
-    def __init__(self, user_api_url, validation_cert):
-        self._url = user_api_url
-        self._user_endpoint = user_api_url + '/api/v1/users'
-        self._role_endpoint = user_api_url + '/api/v1/roles'
+    def __init__(self, api_url, validation_cert):
+        self._url = api_url
+        self._user_endpoint = self._url + '/users'
+        self._role_endpoint = self._url + '/roles'
+        self._status_endpoint = self._url + '/statuses'
         self._cert = validation_cert
 
         self.get    = GetRequest(self._user_endpoint, self._role_endpoint,
@@ -202,20 +192,5 @@ class UserApi(object):
                                  self._status_endpoint, self._cert)
         self.delete = DeleteRequest(self._user_endpoint, self._role_endpoint,
                                     self._status_endpoint, self._cert)
-
-
-
-
-
-    def append_role(self, pseudo, role):
-        ret = False
-        user = self.get_user(pseudo)
-        if user is not None:
-            if not role in user.roles:
-                user.roles.append(role)
-                par = { 'pseudo': pseudo, 'roles': ';'.join(user.roles) }
-                requests.put(self._user_endpoint, params=par, verify=self._cert)
-                ret = True
-        return ret
 
 #
