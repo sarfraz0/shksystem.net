@@ -207,3 +207,7 @@
 * 0.1.10.3
     + PER00001
     + finished logit data model
+* 0.1.10.4
+	+ draft of LogIt API
+	+ copied some api functions into commons
+	+ added snippets not to be used but as reference

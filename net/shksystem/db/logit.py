@@ -5,13 +5,13 @@ __author__  = 'Sarfraz Kapasi'
 __license__ = 'GPL-3'
 
 # standard
+from datetime import datetime
 # installed
 from sqlalchemy import create_engine, Table, Column, Integer, Float, String, \
                        ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 # custom
-from net.shksystem.common.utils import get_current_timestamp
 
 ## Globals
 # =============================================================================
@@ -37,7 +37,7 @@ class Action(Base):
         self.owner = owner
         self.subcategory = subcategory
         self.value = value
-        self.timestamp = get_current_timestamp()
+        self.timestamp = datetime.now().isoformat()
 
     def to_dict(self):
         ret = {}

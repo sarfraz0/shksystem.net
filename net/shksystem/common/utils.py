@@ -8,7 +8,6 @@ __license__ = 'GPL-3'
 # standard
 import os
 import re
-from datetime import datetime
 from logging import getLogger, Formatter, StreamHandler
 from logging.handlers import TimedRotatingFileHandler
 from subprocess import call
@@ -73,15 +72,6 @@ def compile_tex(tex_source_file):
             os.unlink(final_file)
 
     log.info('Compilation success.')
-
-def get_current_timestamp():
-    """
-        get_current_timestamp :: IO String
-        ==================================
-        This function gets current date and time with the ISO format: dd/mm/yy:HH:MM
-    """
-    ret = datetime.now().isoformat()
-    return ret
 
 def replace_in_file(fic, patt, subst):
     """
