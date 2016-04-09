@@ -211,3 +211,5 @@
 	+ draft of LogIt API
 	+ copied some api functions into commons
 	+ added snippets not to be used but as reference
+* 0.1.10.5
+	+ initiated APIUse
