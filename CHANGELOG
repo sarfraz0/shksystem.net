@@ -213,3 +213,6 @@
 	+ added snippets not to be used but as reference
 * 0.1.10.5
 	+ initiated APIUse
+* 0.1.10.6
+    + initialized secret token exchange code
+    + use of commons in users code

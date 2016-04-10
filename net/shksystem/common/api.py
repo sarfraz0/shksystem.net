@@ -59,27 +59,4 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class APIResponse(object):
-
-    def __init__(self):
-        self.code = constans.HTTP_OK
-        self.data = {}
-
-    def raise_error(errMsg, code=constants.HTTP_BAD_REQUEST):
-        self.code = code
-        self.data = { 'error': message }
-
-    # data setter
-
-    def write(self, data_dump=True):
-        self.set_header('Content-Type', 'application/json')
-        self.set_status(int(code))
-        data_write = data if not data_dump else json.dumps(data, indent=4)
-        self.write(data_write)
-        self.finish()
-
-
-
-
-
 #
