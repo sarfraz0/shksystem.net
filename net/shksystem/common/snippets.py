@@ -35,7 +35,7 @@ def get_cpu_number():
         =============================================================
         This proceduce gets the numbers of cpu on the current machine
     """
-    return multiprocessing.get_cpu_count()
+    return multiprocessing.cpu_count()
 
 def get_random_string(lengt):
     """

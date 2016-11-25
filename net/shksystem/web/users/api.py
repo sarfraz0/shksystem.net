@@ -7,6 +7,7 @@ __license__ = 'GPL-3'
 import os
 import logging
 import json
+from datetime import datetime as dt
 # installed
 from sqlalchemy import create_engine, exc
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -20,50 +21,71 @@ from passlib.hash import sha512_crypt
 #import keyring
 import multiprocessing
 # custom
-import net.shksystem.common.constants as constants
-import net.shksystem.common.api as api
+from net.shksystem.common.constants import *
+from net.shksystem.common.api import BaseApplication, BaseHandler
+from net.shksystem.common.exceptions import SHKException
 from net.shksystem.db.users import Base, User, Status, Role
+from net.shksystem.operations.users import UtilsCache
 
 ## Globals
 # =============================================================================
 
 logger = logging.getLogger()
-
-MAX_WORKERS=multiprocessing.get_cpu_count()
-STATIC_CACHID=str(uuid.uuid4()).upper().replace('-', "")[0:6]
+MAX_WORKERS=multiprocessing.cpu_count()
 
 ## Functions and Classes
 # =============================================================================
 
 
-class Application(api.Application):
+class Application(BaseApplication):
 
     def __init__(self, database_url):
         handlers = [
-                     (r'/api/v1/roles', RoleHandler)
-                   , (r'/api/v1/statuses', StatusHandler)
-                   , (r'/api/v1/users', UserHandler)
+                     (r'/api/v2/roles(?:/(\w+))?', RoleHandler)
+                   , (r'/api/v2/statuses(?:/(\w+))?', StatusHandler)
+                   , (r'/api/v2/users/auth', UserAuthHandler)
+                   , (r'/api/v2/users(?:/(\w+))?', UserHandler)
                    ]
         super(Application, self).__init__(database_url, handlers)
+        self.cache = UtilsCache(self.redis_id)
 
 
-class RoleHandler(api.BaseHandler):
+class RoleHandler(BaseHandler):
 
     @tornado.gen.coroutine
-    def get(self):
+    def get(self, identifier=None):
         ret = []
-        ret_code = constants.HTTP_OK
-        roles = self.ormdb.query(Role).all()
-        for r in roles:
-            ret.append(r.name)
+        ret_code = HTTP_OK
+
+        try:
+            if identifier is None:
+                roles = self.ormdb.query(Role).all()
+                for r in roles:
+                    ret.append(r.to_dict())
+            else:
+                # else we query on specific entity
+                role = self.ormdb.query(Role).filter_by(name=identifier) \
+                                             .first()
+                if role is None:
+                    raise SHKException(
+                              HTTP_NOT_FOUND,
+                              ENTITY_NOT_FOUND_MSG
+                          )
+                else:
+                    ret = role.to_dict()
+
+        except SHKException as e:
+            ret_code = e.http_code
+            ret = { ERROR_KEY: e.message }
+
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def post(self):
+    def post(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            role_name = self.get_argument('name')
+            role_name = self.get_argument(NAME_KEY)
             role = Role(role_name)
 
             ret = role.to_dict()
@@ -71,101 +93,128 @@ class RoleHandler(api.BaseHandler):
             self.ormdb.commit()
 
         except exc.IntegrityError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'role already exists' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: ENTITY_EXISTS_MSG }
         except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'post form is missing required data' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: MISSING_ARGS_MSG }
         except Exception as e:
-            logger.exception('Unhandled Exception')
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'Unhandled Exception' }
+            logger.exception(UNHANDLED_EXC_MSG)
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: UNHANDLED_EXC_MSG }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def delete(self):
+    def delete(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            role_name = self.get_argument('name')
-            rl = self.ormdb.query(Role).filter_by(name=role_name).first()
-            if rl is not None:
-                self.ormdb.delete(rl)
-                self.ormdb.commit()
-
-                ret = { 'deleted ID': rl.cid }
+            if identifier is None:
+                raise SHKException(
+                          HTTP_BAD_REQUEST,
+                          MISSING_ARGS_MSG
+                      )
             else:
-                ret_code = constants.HTTP_NOT_FOUND
-                ret = { 'error': 'cant delete user object for given name' }
+                rl = self.ormdb.query(Role).filter_by(name=identifier).first()
+                if rl is not None:
+                    self.ormdb.delete(rl)
+                    self.ormdb.commit()
 
-        except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'name parameter must be provided' }
+                    ret = { RESSOURCE_KEY: rl.cid }
+                else:
+                    ret_code = HTTP_NOT_FOUND
+                    ret = { ERROR_KEY: ENTITY_NOT_FOUND_MSG }
+
+        except SHKException as e:
+            ret_code = e.http_code
+            ret = { ERROR_KEY: e.message }
 
         self.respond(ret, ret_code)
 
 
-class StatusHandler(api.BaseHandler):
+class StatusHandler(BaseHandler):
 
     @tornado.gen.coroutine
-    def get(self):
+    def get(self, identifier=None):
         ret = []
-        ret_code = constants.HTTP_OK
-        statuses = self.ormdb.query(Status).all()
-        for s in statuses:
-            ret.append(s.name)
+        ret_code = HTTP_OK
+
+        if identifier is None:
+            statuses = self.ormdb.query(Status).all()
+            for s in statuses:
+                ret.append(s.name)
+        else:
+            try:
+                status = self.ormdb.query(Status).filter_by(name=identifier) \
+                                                 .first()
+                if status is None:
+                    raise SHKException(
+                              HTTP_NOT_FOUND,
+                              ENTITY_NOT_FOUND_MSG
+                          )
+                else:
+                    ret = status.to_dict()
+
+            except SHKException as e:
+                ret_code = e.http_code
+                ret = {ERROR_KEY: e.message}
+
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def post(self):
+    def post(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            status_name = self.get_argument('name')
-            status = Role(status_name)
+            status_name = self.get_argument(NAME_KEY)
+            status = Status(status_name)
 
             ret = status.to_dict()
             self.ormdb.add(status)
             self.ormdb.commit()
 
         except exc.IntegrityError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'status already exists' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: ENTITY_EXISTS_MSG }
         except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'post form is missing required data' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: MISSING_ARGS_MSG }
         except Exception as e:
-            logger.exception('Unhandled Exception')
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'Unhandled Exception' }
+            logger.exception(UNHANDLED_EXC_MSG)
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: UNHANDLED_EXC_MSG }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def delete(self):
+    def delete(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            status_name = self.get_argument('name')
-            st = self.ormdb.query(Status).filter_by(name=status_name).first()
-            if st is not None:
-                self.ormdb.delete(st)
-                self.ormdb.commit()
-
-                ret = { 'deleted ID': st.cid }
+            if identifier is None:
+                raise SHKException(
+                          HTTP_BAD_REQUEST,
+                          MISSING_ARGS_MSG
+                      )
             else:
-                ret_code = constants.HTTP_NOT_FOUND
-                ret = { 'error': 'cant delete user object for given name' }
+                st = self.ormdb.query(Status).filter_by(name=identifier).first()
+                if st is not None:
+                    self.ormdb.delete(st)
+                    self.ormdb.commit()
+                    ret = { RESSOURCE_KEY: st.cid }
+                else:
+                    ret_code = HTTP_NOT_FOUND
+                    ret = { ERROR_KEY: ENTITY_NOT_FOUND_MSG }
 
-        except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'name parameter must be provided' }
+        except SHKException as e:
+            ret_code = e.http_code
+            ret = { ERROR_KEY: e.message }
 
         self.respond(ret, ret_code)
 
 
-class UserHandler(api.BaseHandler):
+class UserHandler(BaseHandler):
 
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
@@ -181,12 +230,13 @@ class UserHandler(api.BaseHandler):
             This method creates an user
         """
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
 
-        d_status = self.ormdb.query(Status).filter_by(name='pending').first()
+        d_status = self.ormdb.query(Status).filter_by(name=PENDING_KEY) \
+                                           .first()
         usr = User(username, password, d_status)
 
-        d_role = self.ormdb.query(Role).filter_by(name='user').first()
+        d_role = self.ormdb.query(Role).filter_by(name=USER_KEY).first()
         usr.roles.append(d_role)
 
         if email is not None:
@@ -199,12 +249,12 @@ class UserHandler(api.BaseHandler):
             self.ormdb.commit()
 
         except (exc.IntegrityError, exc.InvalidRequestError) as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'user already exists' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: ENTITY_EXISTS_MSG }
         except Exception as e:
-            logger.exception('Unhandled Exception')
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'Unhandled Exception' }
+            logger.exception(UNHANDLED_EXC_MSG)
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: UNHANDLED_EXC_MSG }
 
         return (ret, ret_code)
 
@@ -223,7 +273,7 @@ class UserHandler(api.BaseHandler):
             This function updates an user object in database
         """
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
 
         usr = self.ormdb.query(User).filter_by(pseudo=username).first()
         if usr is not None:
@@ -254,107 +304,157 @@ class UserHandler(api.BaseHandler):
 
             except Exception as e:
                 logger.exception('user could not be updated')
-                ret_code = constants.HTTP_BAD_REQUEST
-                ret = { 'error': 'user could not be updated' }
+                ret_code = HTTP_BAD_REQUEST
+                ret = { ERROR_KEY: 'user could not be updated' }
         else:
-            ret_code = constants.HTTP_NOT_FOUND
-            ret = { 'error': 'user does not exist' }
+            ret_code = HTTP_NOT_FOUND
+            ret = { ERROR_KEY: 'user does not exist' }
 
         return (ret, ret_code)
 
     @tornado.gen.coroutine
-    def get(self):
+    def get(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         dp=True
         try:
-            username = self.get_argument('pseudo')
-
-            redis_id = 'users_{0}_{1}'.format(username, STATIC_CACHID)
-            red_res = self.redis.get(redis_id)
-            if red_res is not None:
-                ret = red_res
-                dp=False
+            if identifier is None:
+                raise SHKException(
+                          HTTP_BAD_REQUEST,
+                          MISSING_ARGS_MSG
+                      )
             else:
-                us = self.ormdb.query(User).filter_by(pseudo=username).first()
-                if us is not None:
-                    ret = us.to_dict()
-                    self.redis.set(redis_id, json.dumps(ret, indent=4))
-                    self.redis.expire(redis_id, constants.REDIS_CACHE_TIMEOUT)
+                uqid = self.redis_uqit(USER_KEY, identifier)
+                red_res = self.redis.get(uqid)
+                if red_res is not None:
+                    ret = red_res
+                    dp=False
                 else:
-                    ret_code = constants.HTTP_NOT_FOUND
-                    ret = { 'error': 'inexistant user object for given pseudo' }
+                    us = self.ormdb.query(User).filter_by(pseudo=identifier) \
+                                               .first()
+                    if us is not None:
+                        ret = us.to_dict()
+                        self.redis.set(uqid, json.dumps(ret, indent=4))
+                        self.redis.expire(uqid, CACHE_TIMEOUT)
+                    else:
+                        ret_code = HTTP_NOT_FOUND
+                        ret = { ERROR_KEY: ENTITY_NOT_FOUND_MSG }
 
-        except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'valid pseudo parameter must be provided' }
+        except SHKException as e:
+            ret_code = e.http_code
+            ret = { ERROR_KEY: e.message }
 
         self.respond(ret, ret_code, data_dump=dp)
 
     @tornado.gen.coroutine
-    def post(self):
+    def post(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            username = self.get_argument('pseudo')
-            email    = self.get_argument('email', default=None)
-            password = self.get_argument('password')
+            username = self.get_argument(PSEUDO_KEY)
+            email    = self.get_argument(EMAIL_KEY, default=None)
+            password = self.get_argument(PASSWORD_KEY)
 
             ret, ret_code = yield self.create_user(username, password, email)
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'post form is missing required data' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: MISSING_ARGS_MSG }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def put(self):
+    def put(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            i_us = self.get_argument('pseudo')
-            i_em = self.get_argument('email', default=None)
-            i_pa = self.get_argument('password', default=None)
-            i_st = self.get_argument('status', default=None)
-            i_rw = self.get_argument('roles', default=None)
+            if identifier is not None:
+                ret_code = HTTP_NOT_FOUND
+                ret = { ERROR_KEY: URL_NOT_FOUND_MSG }
+            else:
+                i_us = self.get_argument(PSEUDO_KEY)
+                i_em = self.get_argument(EMAIL_KEY, default=None)
+                i_pa = self.get_argument(PASSWORD_KEY, default=None)
+                i_st = self.get_argument(STATUS_KEY, default=None)
+                i_rw = self.get_argument(ROLES_KEY, default=None)
 
-            p_rl = None
-            if i_rw is not None:
-                p_rl = filter(lambda x: x != '', i_rw.split(';'))
+                rl = None
+                if i_rw is not None:
+                    rl = filter(lambda x: x != '', i_rw.split(CSV_SEPARATOR))
 
-            ret, ret_code = yield self.update_user(i_us, i_pa, i_st, p_rl, i_em)
+                ret, ret_code = yield self.update_user(i_us, i_pa, i_st, rl
+                        , i_em)
 
-            if ret_code == constants.HTTP_OK:
-                redis_id = 'users_{0}_{1}'.format(i_us, STATIC_CACHID)
-                self.redis.set(redis_id, json.dumps(ret, indent=4))
-                self.redis.expire(redis_id, constants.REDIS_CACHE_TIMEOUT)
+                if ret_code == HTTP_OK:
+                    uqid = self.redis_uqit(USER_KEY, i_us)
+                    self.redis.set(uqid, json.dumps(ret, indent=4))
+                    self.redis.expire(uqid, CACHE_TIMEOUT)
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'put form is missing required data' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = { ERROR_KEY: MISSING_ARGS_MSG }
 
         self.respond(ret, ret_code)
 
     @tornado.gen.coroutine
-    def delete(self):
+    def delete(self, identifier=None):
         ret = {}
-        ret_code = constants.HTTP_OK
+        ret_code = HTTP_OK
         try:
-            username = self.get_argument('pseudo')
-            us = self.ormdb.query(User).filter_by(pseudo=username).first()
+            if identifier is None:
+                raise SHKException(
+                          HTTP_BAD_REQUEST,
+                          MISSING_ARGS_MSG
+                      )
+            else:
+                us = self.ormdb.query(User).filter_by(pseudo=identifier) \
+                        .first()
             if us is not None:
                 self.ormdb.delete(us)
                 self.ormdb.commit()
 
-                ret = { 'deleted ID': us.cid }
+                ret = { RESSOURCE_KEY: us.cid }
             else:
-                ret_code = constants.HTTP_NOT_FOUND
-                ret = { 'error': 'cant delete user object for given pseudo' }
+                ret_code = HTTP_NOT_FOUND
+                ret = { ERROR_KEY: ENTITY_OP_FAIL_MSG }
+
+        except SHKException as e:
+            ret_code = e.http_code
+            ret = { ERROR_KEY: e.message }
+
+        self.respond(ret, ret_code)
+
+
+class UserAuthHandler(BaseHandler):
+
+    def post(self):
+        ret = {}
+        ret_code = HTTP_OK
+
+        try:
+            pseudo = self.get_argument(PSEUDO_KEY)
+            password = self.get_argument(PASSWORD_KEY)
+
+            cached_usr = self.application.cache.get_user(pseudo)
+            is_auth = False
+            if cached_usr is not None:
+                if sha512_crypt.verify(password, cached_usr[PASSWHASH_KEY]):
+                    is_auth = True
+            else:
+                us = self.ormdb.query(User).filter_by(pseudo=pseudo).first()
+                if us is not None:
+                    self.application.cache.set_user(us)
+                    if sha512_crypt.verify(password, us.passwhash):
+                        is_auth = True
+                else:
+                    ret_code = HTTP_NOT_FOUND
+                    ret = { ERROR_KEY: ENTITY_NOT_FOUND_MSG }
+
+            ret = {RESSOURCE_KEY: is_auth}
 
         except tornado.web.MissingArgumentError as e:
-            ret_code = constants.HTTP_BAD_REQUEST
-            ret = { 'error': 'pseudo parameter must be provided' }
+            ret_code = HTTP_BAD_REQUEST
+            ret = {ERROR_KEY: MISSING_ARGS_MSG}
 
         self.respond(ret, ret_code)
 
@@ -367,4 +467,4 @@ def run_api(database_url, port=8080, debug=False):
         tornado.autoreload.start(ioloop)
     ioloop.start()
 
-#
+

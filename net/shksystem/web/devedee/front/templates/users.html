@@ -1,0 +1,138 @@
+{% extends 'menu.html' %}
+{% block title %}Users Management{% endblock %}
+{% block css %}{{ url_for('static', filename='css/users.css') }}{% endblock %}
+{% block content %}
+
+{% if mode == 'MODIFY' %}
+<form action="{{ url_for('manage_users', mode='MODIFY') }}" method="post">
+    {{ modify_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Modify user</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.pseudo.label }}
+                        {{ modify_form.pseudo }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.email.label }}
+                        {{ add_form.email(autofocus=true) }}
+                 </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.password.label }}
+                        {{ modify_form.password }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ modify_form.status }}{{ modify_form.status.label }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript" charset="utf-8">
+function get_user() {
+  $.getJSON($SCRIPT_ROOT + "/api/ajax/get_user/"+ $("#{{ modify_form.pseudo.id }}").val(),
+      function(data) {
+      $("#{{ modify_form.status.id }} option").eq(data.STATUSID).prop("selected", true);
+    });
+}
+get_user();
+$("#{{ modify_form.pseudo.id }}").change(function(e) { get_user(); });
+</script>
+{% endif %}
+
+{% if mode == 'ADD' %}
+<form action="{{ url_for('manage_users', mode='ADD') }}" method="post">
+    {{ add_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Add user</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.pseudo.label }}
+                        {{ add_form.pseudo(autofocus=true, required=true) }}
+                 </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.email.label }}
+                        {{ add_form.email(autofocus=true) }}
+                 </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.password.label }}
+                        {{ add_form.password(autofocus=true, required=true) }}
+                   </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ add_form.status }}{{ add_form.status.label }}
+                  </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-3 large-offset-9 columns">
+                        <input type="submit" value="Submit" class="button">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% if mode == 'REMOVE' %}
+<form action="{{ url_for('manage_users', mode='REMOVE') }}" method="post">
+    {{ remove_form.hidden_tag() }}
+    <div class="row">
+        <div class="large-12 columns">
+            <fieldset>
+                <legend>Remove user</legend>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        {{ remove_form.pseudo.label }}
+                        {{ remove_form.pseudo }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="large-12 columns">
+                        <input type="submit" value="Submit" class="button expand">
+                    </div>
+                </div>
+
+            </fieldset>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+{% endblock %}

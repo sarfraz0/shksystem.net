@@ -216,3 +216,5 @@
 * 0.1.10.6
     + initialized secret token exchange code
     + use of commons in users code
+* 0.1.10.7
+    + adding unstaged change before github migration

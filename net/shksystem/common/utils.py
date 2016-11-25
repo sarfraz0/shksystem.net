@@ -13,11 +13,15 @@ from logging.handlers import TimedRotatingFileHandler
 from subprocess import call
 from shutil import move, rmtree
 from tempfile import mkstemp
+# installed
+import requests
+# custom
+import net.shksystem.common.constants as const
 
 # Globals
 # =============================================================================
 
-log = getLogger(__name__)
+logger = getLogger(__name__)
 
 # Classes and Functions
 # =============================================================================
@@ -53,25 +57,25 @@ def compile_tex(tex_source_file):
         This function calls pdflatex on LaTEX file and performs cleanup afterwards
     """
     if not os.path.isfile(tex_source_file):
-        log.warn('Input file does not exist : %s.', tex_source_file)
+        logger.warn('Input file does not exist : %s.', tex_source_file)
         raise OSError
     tex_file_name = os.path.splitext(tex_source_file)[0]
     exts = ['aux', 'log']
 
-    log.info('Calling pdflatex on %s.', tex_source_file)
+    logger.info('Calling pdflatex on %s.', tex_source_file)
     code = call(['pdflatex', '-interaction=nonstopmode',
                  tex_source_file, '>', os.devnull])
     if code != 0:
-        log.warn('Compilation failure.')
+        logger.warn('Compilation failure.')
         raise IOError
 
     for ext in exts:
         final_file = '{0}{1}{2}'.format(tex_file_name, os.extsep, ext)
         if os.path.isfile(final_file):
-            log.info('Deleting %s.', final_file)
+            logger.info('Deleting %s.', final_file)
             os.unlink(final_file)
 
-    log.info('Compilation success.')
+    logger.info('Compilation success.')
 
 def replace_in_file(fic, patt, subst):
     """
@@ -91,7 +95,7 @@ def replace_in_file(fic, patt, subst):
         os.remove(fic)
         move(temp_fic, fic)
     except OSError:
-        log.exception('Replace of patern %s by %s failed on file %s.',
+        logger.exception('Replace of patern %s by %s failed on file %s.',
                       patt, subst, fic)
     finally:
         nfic.close()
@@ -162,7 +166,7 @@ def remove_file_duplicates(fic):
                 seen.add(line)
                 out_file.write(line)
         except OSError:
-            log.exception('Cannot remove duplicate in file : %s.', fic)
+            logger.exception('Cannot remove duplicate in file : %s.', fic)
         finally:
             in_file.close()
             out_file.close()
@@ -171,7 +175,7 @@ def remove_file_duplicates(fic):
         os.unlink(fic)
         move(tmp_fic, fic)
     else:
-        log.error('File to be filtered does not exist : %s.', fic)
+        logger.error('File to be filtered does not exist : %s.', fic)
 
 def intersperse(iterable, delimiter):
     """ intersperse :: [a] -> a -> [a]
@@ -184,5 +188,39 @@ def intersperse(iterable, delimiter):
     for x in it:
         yield delimiter
         yield x
+
+def check_url(url_to_check):
+    """
+        check_url :: Url -> IO Bool
+        ===================================================================
+        This function checks whether the given http url is reachable or not
+    """
+    ret = False
+    try:
+        r = requests.head(url_to_check)
+        ret = (r.status_code < 400)
+    except requests.ConnectionError as e:
+        pass
+
+    return ret
+
+def regexify(pattern_to_find):
+    """
+        regexify :: String -> Regex
+        =======================================================================
+        This function takes a pattern an gives back a regex that could match it
+    """
+    ret = ''
+    ret += '^.*'
+    pat = pattern_to_find.split(' ')
+    mod = lambda x: x.strip().lower().translate(None, const.REGEX_SPECIAL_CHARS)
+    pat = filter(None, [mod(x) for x in pat])
+    pat = '.*'.join(pat)
+    ret += pat
+    ret += '.*$'
+    return ret
+
+def match_release_title(show_filename):
+    pass
 
 #
